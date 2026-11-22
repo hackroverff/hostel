@@ -570,6 +570,17 @@ img{max-width:100%;display:block}
 .mn-label{background:none;border:0;color:inherit;padding:0 4px;border-radius:10px;min-height:44px}
 .mn-label:active{background:#F1F5FB}
 
+@media (max-width:359px){
+  .hero-amount{font-size:30px}
+  .hero-stat .v{font-size:14px}
+  .summary-strip .v{font-size:13px}
+  .pay-actions .mini-btn{font-size:12.5px;gap:4px;padding:0 6px}
+  .mode-chips .choice{font-size:12.5px}
+  .seg button{font-size:13.5px}
+  .tab{font-size:10px}
+  .screen{padding-left:14px;padding-right:14px}
+}
+
 /* print */
 .print-root{display:none}
 @media print{
@@ -1420,7 +1431,7 @@ function renderHome() {
     h += '<div class="section"><div class="banner"><div class="bi">' + icon('shield', 18) + '</div>' +
       '<div class="grow"><div class="bt">' + (lb ? 'Last backup ' + daysBetween(lb, todayISO()) + ' days ago' : 'No backup yet') + '</div>' +
       '<div class="bs">Keep your data safe. Back up once a week.</div></div>' +
-      '<button class="bx" data-act="settings">Back up</button></div></div>';
+      '<button class="bx" data-act="backup">Back up</button></div></div>';
   }
 
   // occupancy
