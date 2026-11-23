@@ -1,14 +1,18 @@
 /* Hostel Manager — offline cache */
-const CACHE = 'hostel-manager-v1';
+const CACHE = 'hostel-manager-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
+  // Do not take over mid-session; the page asks for SKIP_WAITING when it is safe.
   event.waitUntil(
-    caches.open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())
+    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).catch(() => {})
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING' || (event.data && event.data.type === 'SKIP_WAITING')) {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {

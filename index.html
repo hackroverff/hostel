@@ -363,7 +363,7 @@ img{max-width:100%;display:block}
 /* toast */
 .toast{
   position:fixed;left:50%;bottom:calc(100px + var(--safe-b));transform:translate(-50%,20px);
-  z-index:90;background:#0F172A;color:#fff;padding:12px 18px;border-radius:14px;
+  z-index:130;background:#0F172A;color:#fff;padding:12px 18px;border-radius:14px;
   font-size:14px;font-weight:600;box-shadow:0 14px 30px -12px rgba(0,0,0,.5);
   opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 40px);text-align:center;
 }
@@ -581,6 +581,158 @@ img{max-width:100%;display:block}
   .screen{padding-left:14px;padding-right:14px}
 }
 
+
+/* ---------- backup banner states ---------- */
+.banner.danger{background:#FEF2F2;border-color:#FBD5D5;color:#991B1B}
+.banner.danger .bi{background:#FEE2E2;color:#DC2626}
+.banner.danger .bx{color:#991B1B}
+
+/* ---------- ID reveal ---------- */
+.reveal-btn{display:inline-flex;align-items:center;min-height:32px;padding:0 8px;margin-left:6px;border-radius:8px;background:var(--navy-50);color:var(--navy);font-size:12px;font-weight:750;vertical-align:middle}
+.reveal-btn:active{background:var(--navy-100)}
+
+/* ---------- switch ---------- */
+.switch{width:46px;height:28px;border-radius:99px;background:#E2E8F0;position:relative;transition:background .18s;flex:0 0 auto}
+.switch i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.25);transition:left .18s}
+.switch.on{background:var(--navy)}
+.switch.on i{left:21px}
+
+/* ---------- payment receipt ---------- */
+.receipt-hero{background:linear-gradient(150deg,#E7F8F1,#F2FDF8);border:1px solid #BFEBD8;border-radius:18px;padding:18px;text-align:center;color:#047857;margin-bottom:14px}
+.receipt-hero .ra{font-size:30px;font-weight:750;letter-spacing:-.8px;margin-top:6px;font-variant-numeric:tabular-nums}
+.receipt-hero .rs{font-size:13px;font-weight:650;color:#047857;opacity:.85;margin-top:2px}
+
+/* ---------- app lock ---------- */
+#lockLayer{position:fixed;inset:0;z-index:100;display:none}
+#lockLayer.open{display:block}
+.lock-screen{
+  position:absolute;inset:0;overflow-y:auto;
+  background:linear-gradient(160deg,#0D2160 0%,#1E40AF 55%,#2B5BE0 100%);
+  color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(22px + env(safe-area-inset-bottom,0px));
+}
+.lock-glow{position:absolute;width:440px;height:440px;border-radius:50%;top:-170px;right:-150px;pointer-events:none;
+  background:radial-gradient(circle at center,rgba(255,255,255,.16),rgba(255,255,255,0) 68%)}
+.lock-inner{width:100%;max-width:330px;text-align:center;position:relative;margin:auto 0}
+.lock-mark{width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 12px 26px -14px rgba(0,0,0,.6)}
+.lock-brand{font-size:14px;font-weight:700;color:#C9D6FF;letter-spacing:.3px}
+.lock-title{font-size:24px;font-weight:750;letter-spacing:-.5px;margin-top:3px}
+.lock-sub{font-size:13.5px;color:#C9D6FF;margin-top:6px;line-height:1.45;min-height:38px}
+.pin-dots{display:flex;gap:15px;justify-content:center;margin:18px 0 6px}
+.pin-dots span{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.45);transition:background .12s,transform .12s}
+.pin-dots span.on{background:#fff;border-color:#fff;transform:scale(1.08)}
+.pin-dots.error span{border-color:#FCA5A5}
+.pin-dots.shake{animation:pinShake .32s}
+@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.lock-msg{min-height:22px;font-size:13px;font-weight:650;color:#FFD7D7;margin-bottom:8px}
+.lock-msg.ok{color:#A7F3D0}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+.lock-key{
+  height:60px;border-radius:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.17);
+  color:#fff;font-size:25px;font-weight:600;display:grid;place-items:center;
+  transition:transform .1s,background .12s;
+}
+.lock-key:active{transform:scale(.95);background:rgba(255,255,255,.22)}
+.lock-key.blank{background:transparent;border-color:transparent;pointer-events:none}
+.lock-key.delete{font-size:13px;font-weight:700;letter-spacing:.2px;color:#DCE5FF}
+.lock-link{margin-top:12px;color:#C9D6FF;font-size:13.5px;font-weight:650;min-height:48px;padding:0 14px;border-radius:12px}
+.lock-link:active{background:rgba(255,255,255,.1)}
+.lock-help{margin-top:14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:14px;text-align:left;color:#E7EDFF;font-size:13px;line-height:1.5}
+.lock-help b{display:block;font-size:14.5px;margin-bottom:4px;color:#fff}
+.lock-help .btn{margin-top:10px;min-height:48px}
+.lock-help .btn.ghost{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)}
+.lock-foot{margin-top:18px;font-size:11.5px;color:#A9BCF5}
+
+
+/* ---------- large text mode (+15%) ---------- */
+html.large-text body{font-size:18.4px}
+html.large-text .brand-name{font-size:19.5px}
+html.large-text .brand-sub{font-size:13.8px}
+html.large-text .hero-eyebrow{font-size:15px}
+html.large-text .hero-amount{font-size:40px}
+html.large-text .hero-caption{font-size:15.5px}
+html.large-text .hero-foot{font-size:14.4px}
+html.large-text .hero-pct{font-size:15px}
+html.large-text .hero-stat .k{font-size:13.8px}
+html.large-text .hero-stat .v{font-size:18.4px}
+html.large-text .section-title{font-size:19.5px}
+html.large-text .link-btn{font-size:16px}
+html.large-text .tile .k{font-size:14.4px}
+html.large-text .tile .v{font-size:23px}
+html.large-text .tile .s{font-size:13.8px}
+html.large-text .occ-cell .n{font-size:23px}
+html.large-text .occ-cell .l{font-size:13.2px}
+html.large-text .quick .ql{font-size:14.4px}
+html.large-text .list-row .title{font-size:18.4px}
+html.large-text .list-row .sub{font-size:15px}
+html.large-text .badge{font-size:13.8px}
+html.large-text .btn{font-size:18.4px}
+html.large-text .btn.sm{font-size:16.6px}
+html.large-text .btn.xs{font-size:15.5px}
+html.large-text .input,html.large-text .select,html.large-text .textarea{font-size:18.4px}
+html.large-text .field > label,html.large-text .field-label{font-size:15.5px}
+html.large-text .field-hint{font-size:14.4px}
+html.large-text .field-error{font-size:14.4px}
+html.large-text .choice{font-size:16.6px}
+html.large-text .checkline span{font-size:17px}
+html.large-text .room-no{font-size:22px}
+html.large-text .room-meta{font-size:14.4px}
+html.large-text .room-rent .r{font-size:18.4px}
+html.large-text .bed .bl{font-size:12.6px}
+html.large-text .bed .bn{font-size:14.4px}
+html.large-text .legend{font-size:13.2px}
+html.large-text .res-card .rn{font-size:17.8px}
+html.large-text .res-card .rs{font-size:14.4px}
+html.large-text .res-card .amt{font-size:14.4px}
+html.large-text .profile-head .pn{font-size:24px}
+html.large-text .profile-head .ps{font-size:15.5px}
+html.large-text .kv .k{font-size:15.5px}
+html.large-text .kv .v{font-size:16.6px}
+html.large-text .card-title{font-size:16px}
+html.large-text .month-row .m{font-size:16px}
+html.large-text .month-row .d{font-size:13.8px}
+html.large-text .month-row .r .a{font-size:16.6px}
+html.large-text .month-nav .mn-label .l1{font-size:18.4px}
+html.large-text .month-nav .mn-label .l2{font-size:13.2px}
+html.large-text .pay-top .pn{font-size:17.8px}
+html.large-text .pay-top .pd{font-size:14.4px}
+html.large-text .fig .fk{font-size:12px}
+html.large-text .fig .fv{font-size:17.2px}
+html.large-text .mini-btn{font-size:15.5px}
+html.large-text .summary-strip .k{font-size:12.6px}
+html.large-text .summary-strip .v{font-size:16.6px}
+html.large-text .rem-card .semi{font-size:17.2px}
+html.large-text .rem-card .small{font-size:14.4px}
+html.large-text .report-tabs button{font-size:15.5px}
+html.large-text .filter-grid label{font-size:13.2px}
+html.large-text .report-hero .k{font-size:13.8px}
+html.large-text .report-hero .v{font-size:34.5px}
+html.large-text .report-hero .s{font-size:14.4px}
+html.large-text .report-grid .rgt .k{font-size:12.6px}
+html.large-text .report-grid .rgt .v{font-size:18.4px}
+html.large-text .ytd-row .y .k{font-size:12px}
+html.large-text .ytd-row .y .v{font-size:15.5px}
+html.large-text .cat-head{font-size:16px}
+html.large-text .expense-row .et{font-size:16.6px}
+html.large-text .expense-row .es{font-size:13.8px}
+html.large-text .chart-labels span{font-size:12px}
+html.large-text .chart-legend{font-size:13.2px}
+html.large-text .sheet-title{font-size:22px}
+html.large-text .sheet-sub{font-size:15px}
+html.large-text .set-row .st{font-size:17.2px}
+html.large-text .set-row .ss{font-size:13.8px}
+html.large-text .set-label{font-size:13.2px}
+html.large-text .empty h3{font-size:18.4px}
+html.large-text .empty p{font-size:15.5px}
+html.large-text .seg button{font-size:16.6px}
+html.large-text .tab{font-size:12.4px}
+html.large-text .banner .bt{font-size:15px}
+html.large-text .banner .bs{font-size:13.8px}
+html.large-text .banner .bx{font-size:14.4px}
+html.large-text .mode-chips .choice{font-size:15.5px}
+html.large-text .receipt-hero .ra{font-size:34.5px}
+html.large-text .receipt-hero .rs{font-size:15px}
+
 /* print */
 .print-root{display:none}
 @media print{
@@ -612,6 +764,7 @@ img{max-width:100%;display:block}
 </div>
 <div id="sheetLayer"></div>
 <div id="confirmLayer"></div>
+<div id="lockLayer" aria-live="polite"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="print-root" id="printRoot"></div>
 <noscript>
@@ -646,6 +799,34 @@ function parseAmount(v) { return Math.max(0, Math.round(num(String(v == null ? '
 function clamp(n, a, b) { return Math.min(b, Math.max(a, n)); }
 function uid(prefix) {
   return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* mask an ID number, showing only the last 4 characters */
+function maskId(id) {
+  var v = String(id == null ? '' : id).trim();
+  if (!v) return '\u2014';
+  if (v.length <= 4) return '\u2022\u2022\u2022\u2022';
+  return '\u2022\u2022\u2022\u2022 ' + v.slice(-4);
+}
+
+/* apply the saved reading preferences */
+function applyUiPrefs() {
+  try {
+    var on = !!(db && db.settings && db.settings.largeText);
+    document.documentElement.classList.toggle('large-text', on);
+  } catch (e) {}
+}
+
+/* ask the browser not to clear our storage when space is low */
+function requestPersistentStorage() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    navigator.storage.persisted().then(function (already) {
+      if (!already) navigator.storage.persist().catch(function () {});
+    }).catch(function () {
+      try { navigator.storage.persist(); } catch (e) {}
+    });
+  } catch (e) {}
 }
 
 /* Indian currency: 12500 -> ₹12,500 ; 125000 -> ₹1,25,000 */
@@ -784,7 +965,8 @@ function blankDB() {
       ownerName: '',
       upi: '',
       waTemplate: DEFAULT_TEMPLATE,
-      propertyNote: ''
+      propertyNote: '',
+      largeText: false
     },
     meta: {
       lastRunMonth: thisMonth(),
@@ -1236,6 +1418,10 @@ var ICONS = {
   door: '<path d="M4 21h16"/><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><circle cx="14.5" cy="12" r="1"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>',
+  lock: '<rect x="4.5" y="10.5" width="15" height="10.5" rx="2.6"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><path d="M12 14.6v2.4"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8"/><path d="m16 7 2 2"/><path d="m13 10 2 2"/>',
+  share: '<path d="M4 12.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"/><path d="m16 6-4-4-4 4"/><path d="M12 2v12"/>',
+  eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>',
   wifi: '<path d="M2 8.8a16 16 0 0 1 20 0"/><path d="M5.5 12.3a10.5 10.5 0 0 1 13 0"/><path d="M8.8 15.8a5.2 5.2 0 0 1 6.4 0"/><path d="M12 19.5h.01"/>'
 };
 function icon(name, size, cls) {
@@ -1261,6 +1447,10 @@ var ui = {
   report: { tab: 'overview', year: new Date().getFullYear(), month: thisMonth(), prop: 'all' },
   sheet: null,
   wizard: null,
+  revealedIds: {},
+  receipt: null,
+  restoreResetPin: false,
+  settingsReturn: null,
   scrollMemo: {},
   restoreScroll: false
 };
@@ -1304,7 +1494,11 @@ function back() {
   } else if (name === 'remind') {
     ui.tab = 'payments';
     ui.view = { name: 'payments', params: {} };
-  } else if (name === 'settings' || name === 'rooms' || name === 'residents' || name === 'payments' || name === 'reports') {
+  } else if (name === 'settings') {
+    ui.tab = ui.settingsReturn || 'home';
+    ui.view = { name: ui.tab, params: {} };
+    ui.settingsReturn = null;
+  } else if (name === 'rooms' || name === 'residents' || name === 'payments' || name === 'reports') {
     ui.tab = 'home';
     ui.view = { name: 'home', params: {} };
   } else {
@@ -1428,10 +1622,13 @@ function renderHome() {
   var lb = db.meta.lastBackup;
   var daysSince = lb ? daysBetween(lb, todayISO()) : null;
   if (db.residents.length && (daysSince === null || daysSince > 7)) {
-    h += '<div class="section"><div class="banner"><div class="bi">' + icon('shield', 18) + '</div>' +
-      '<div class="grow"><div class="bt">' + (lb ? 'Last backup ' + daysBetween(lb, todayISO()) + ' days ago' : 'No backup yet') + '</div>' +
-      '<div class="bs">Keep your data safe. Back up once a week.</div></div>' +
-      '<button class="bx" data-act="backup">Back up</button></div></div>';
+    h += '<div class="section"><div class="banner danger"><div class="bi">' + icon('alert', 18) + '</div>' +
+      '<div class="grow"><div class="bt">' + (daysSince === null ? 'No backup yet' : 'Last backup ' + daysSince + ' day' + (daysSince === 1 ? '' : 's') + ' ago') + '</div>' +
+      '<div class="bs">Back up weekly so your data is never lost.</div>' +
+      '<div class="btn-row" style="margin-top:8px;gap:8px">' +
+      '<button class="bx" style="text-decoration:none;background:#fff;border-radius:11px;padding:0 14px" data-act="share-backup">' + icon('share', 15) + ' Share</button>' +
+      '<button class="bx" style="text-decoration:none;background:#fff;border-radius:11px;padding:0 14px" data-act="backup">' + icon('download', 15) + ' Download</button>' +
+      '</div></div></div></div>';
   }
 
   // occupancy
@@ -1726,7 +1923,11 @@ function renderResidentProfile(id) {
     (r.guardianPhone ? '<div class="btn-row" style="margin:8px 0 10px"><a class="btn ghost sm" href="' + attr(telLink(r.guardianPhone)) + '">' + icon('phone', 16) + ' Call guardian</a>' +
       '<a class="btn ghost sm" href="' + attr(waLink(r.guardianPhone, 'Hello, this is about ' + r.name + '\u2019s stay at ' + propName(r.propertyId) + '.')) + '" target="_blank" rel="noopener">' + icon('whatsapp', 17) + ' Message</a></div>' : '') +
     '<div class="kv"><div class="k">College / work</div><div class="v">' + esc(r.college || '\u2014') + '</div></div>' +
-    '<div class="kv"><div class="k">ID proof</div><div class="v">' + esc(r.idType || '\u2014') + (r.idNumber ? '<br><span class="muted small">' + esc(r.idNumber) + '</span>' : '') + '</div></div>' +
+    '<div class="kv"><div class="k">ID proof</div><div class="v">' + esc(r.idType || '\u2014') +
+      (r.idNumber
+        ? '<div class="row-between" style="gap:8px;align-items:center"><span class="small ' + (ui.revealedIds[r.id] ? '' : 'muted') + '" style="letter-spacing:' + (ui.revealedIds[r.id] ? '0' : '.08em') + '">' + esc(ui.revealedIds[r.id] ? r.idNumber : maskId(r.idNumber)) + '</span>' +
+          '<button class="reveal-btn" data-act="toggle-id" data-id="' + attr(r.id) + '" aria-label="' + (ui.revealedIds[r.id] ? 'Hide ID number' : 'Show ID number') + '">' + icon('eye', 15) + (ui.revealedIds[r.id] ? ' Hide' : ' Show') + '</button></div>'
+        : '') + '</div></div>' +
     '<div class="kv"><div class="k">Joining date</div><div class="v">' + esc(fmtDate(r.joiningDate)) + '</div></div>' +
     '<div class="kv"><div class="k">Monthly rent</div><div class="v t-num">' + money(r.rent) + '</div></div>' +
     (r.proRate && String(r.joiningDate || '').slice(0, 7) === thisMonth()
@@ -2346,7 +2547,7 @@ function openSheet(name, params) {
 function closeSheet() {
   ui.sheet = null;
   $('#sheetLayer').innerHTML = '';
-  document.body.classList.remove('is-locked');
+  if (pinState.mode === 'none') document.body.classList.remove('is-locked');
   // remove any transient errors / focus
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -2364,6 +2565,8 @@ function renderSheet() {
     else if (n === 'vacate') html = sheetVacate(p);
     else if (n === 'payPicker') html = sheetPayPicker(p);
     else if (n === 'install') html = sheetInstall();
+    else if (n === 'receipt') html = sheetReceipt();
+    else if (n === 'changePin') html = sheetChangePin();
   } catch (e) {
     console.error('Sheet failed', e);
     html = sheetShell({ title: 'Something went wrong', body: '<div class="sheet-body"><p class="muted">Please close this and try again.</p></div>' });
@@ -2382,13 +2585,13 @@ function askConfirm(opts) {
 function closeConfirm() {
   ui.confirm = null;
   renderConfirm();
-  if (!ui.sheet) document.body.classList.remove('is-locked');
+  if (!ui.sheet && pinState.mode === 'none') document.body.classList.remove('is-locked');
 }
 function renderConfirm() {
   var layer = $('#confirmLayer');
   if (!ui.confirm) { layer.innerHTML = ''; return; }
   var c = ui.confirm;
-  layer.innerHTML = '<div class="sheet-layer" style="z-index:80">' +
+  layer.innerHTML = '<div class="sheet-layer" style="z-index:110">' +
     '<div class="sheet-backdrop" data-act="confirm-no"></div>' +
     '<div class="sheet" style="max-width:420px;border-radius:24px 24px 0 0">' +
     '<div class="sheet-grip"></div>' +
@@ -2501,6 +2704,33 @@ function sheetBed(params) {
 /* ===========================================================================
    18. Resident wizard
    =========================================================================== */
+function rentMonthOptions(selected) {
+  var cur = thisMonth();
+  var opts = [];
+  for (var i = 11; i >= 0; i--) opts.push(addMonths(cur, -i));
+  var sel = /^\d{4}-\d{2}$/.test(String(selected || '')) ? selected : cur;
+  if (opts.indexOf(sel) === -1) opts.push(sel);
+  return opts.map(function (mk) {
+    return '<option value="' + attr(mk) + '"' + (mk === sel ? ' selected' : '') + '>' + esc(fmtMonth(mk)) + (mk === cur ? ' (this month)' : '') + '</option>';
+  }).join('');
+}
+function applyRentFrom(resId, fromMonth, newRent) {
+  var r = residentById(resId);
+  if (!r) return 0;
+  var from = /^\d{4}-\d{2}$/.test(String(fromMonth || '')) ? String(fromMonth) : thisMonth();
+  var rent = Math.max(0, Math.round(num(newRent)));
+  r.rent = rent;
+  var touched = 0;
+  db.payments.forEach(function (p) {
+    if (p.residentId !== resId) return;
+    if (String(p.month) < from) return;
+    p.due = rent;
+    syncPayment(p);
+    touched++;
+  });
+  save();
+  return touched;
+}
 function newDraft() {
   return {
     name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '',
@@ -2519,7 +2749,7 @@ function openResidentWizard(id, bedId) {
         college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: r.idNumber || '', photo: r.photo || '',
         propertyId: r.propertyId, roomId: r.roomId || '', bedId: r.bedId || '', joiningDate: r.joiningDate || todayISO(),
         rent: num(r.rent), proRate: r.proRate !== false, depositAmount: num(r.depositAmount),
-        depositReceived: !!r.depositReceived, notes: r.notes || ''
+        depositReceived: !!r.depositReceived, notes: r.notes || '', rentFrom: thisMonth()
       }
     };
   } else {
@@ -2604,6 +2834,10 @@ function wizBody(data, step) {
   return '<div class="field"><label>Monthly rent <span style="color:var(--red)">*</span></label>' +
     '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="rent" inputmode="numeric" value="' + (data.rent === '' ? '' : num(data.rent)) + '"></div>' +
     '<div class="field-error"></div><div class="field-hint">Usually the room rent. You can change it for this resident.</div></div>' +
+    (ui.wizard.mode === 'edit'
+      ? '<div class="field"><label>Apply a rent change from</label><select class="select" name="rentFrom">' + rentMonthOptions(data.rentFrom) + '</select>' +
+        '<div class="field-hint">Only used when the rent above is different. Earlier months keep the old rent.</div></div>'
+      : '') +
     (showPro
       ? '<div class="field"><label>First month rent (' + esc(fmtMonth(joinMk)) + ')</label>' +
         '<div class="choice-grid" data-group="proRate">' +
@@ -2651,7 +2885,7 @@ function captureWizard() {
   var form = $('#sheetLayer form');
   if (!form || !ui.wizard) return;
   var d = ui.wizard.data;
-  ['name', 'phone', 'guardianName', 'guardianPhone', 'college', 'idType', 'idNumber', 'propertyId', 'roomId', 'bedId', 'joiningDate', 'rent', 'depositAmount', 'notes'].forEach(function (k) {
+  ['name', 'phone', 'guardianName', 'guardianPhone', 'college', 'idType', 'idNumber', 'propertyId', 'roomId', 'bedId', 'joiningDate', 'rent', 'depositAmount', 'notes', 'rentFrom'].forEach(function (k) {
     var el = form.elements[k];
     if (el) d[k] = el.value;
   });
@@ -2758,7 +2992,15 @@ function saveResidentForm(form) {
     resident = residentById(w.id);
     if (!resident) { closeSheet(); return; }
     var oldBed = resident.bedId;
+    var oldRent = resident.rent;
     Object.keys(fields).forEach(function (k) { resident[k] = fields[k]; });
+    if (rent !== num(oldRent)) {
+      applyRentFrom(resident.id, w.data.rentFrom || thisMonth(), rent);
+      var newDues = db.payments.filter(function (x) {
+        return x.residentId === resident.id && String(x.month) >= (w.data.rentFrom || thisMonth());
+      }).length;
+      if (newDues) toast('Rent updated for ' + newDues + ' month' + (newDues > 1 ? 's' : ''), 'good');
+    }
     if (oldBed && oldBed !== bedId) {
       var ob = bedById(oldBed);
       if (ob) { ob.status = 'vacant'; ob.residentId = null; }
@@ -2853,10 +3095,9 @@ function savePaymentForm(form) {
   var mode = val(form, 'mode') || 'Cash';
   var note = val(form, 'note');
   addReceipt(p, amount, mode, date, note);
-  closeSheet();
   render();
-  var st = dueStatus(p);
-  toast(st === 'Paid' ? 'Payment saved \u00B7 fully paid' : 'Payment saved \u00B7 ' + money(balanceOf(p)) + ' left', 'good');
+  ui.receipt = { residentId: p.residentId, amount: amount, month: p.month, balance: balanceOf(p), date: date, mode: mode };
+  openSheet('receipt');
 }
 
 /* ===========================================================================
@@ -3000,7 +3241,7 @@ function renderSettings() {
   var h = topbar({ title: 'Settings', back: true, sub: 'Your hostel, your data' });
   h += '<div class="screen">';
 
-  h += '<div class="banner" style="' + (stale ? '' : 'background:var(--green-bg);border-color:#BFEBD8;color:#065F46') + '">' +
+  h += '<div class="banner' + (stale ? ' danger' : '') + '" style="' + (stale ? '' : 'background:var(--green-bg);border-color:#BFEBD8;color:#065F46') + '">' +
     '<div class="bi" style="' + (stale ? '' : 'background:#D7F5E6;color:#059669') + '">' + icon(stale ? 'alert' : 'shield', 18) + '</div>' +
     '<div class="grow"><div class="bt">' + (lb ? 'Last backup: ' + esc(fmtDate(lb)) : 'No backup yet') + '</div>' +
     '<div class="bs">' + (stale ? 'Back up every week so you never lose your data.' : 'Your data is backed up. Do it again next week.') + '</div></div>' +
@@ -3036,6 +3277,8 @@ function renderSettings() {
 
   h += '<div class="set-label">Data safety</div>' +
     '<div class="set-group">' +
+    '<button class="set-row" data-act="share-backup"><span class="si">' + icon('share', 18) + '</span>' +
+    '<span class="grow"><span class="st">Share backup</span><span class="ss">Send to Drive, WhatsApp or Files</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<button class="set-row" data-act="backup"><span class="si">' + icon('download', 18) + '</span>' +
     '<span class="grow"><span class="st">Back up data</span><span class="ss">Download a safe copy to your phone</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<button class="set-row" data-act="restore"><span class="si">' + icon('upload', 18) + '</span>' +
@@ -3049,7 +3292,29 @@ function renderSettings() {
     '</div>' +
     '<input type="file" id="restoreFile" accept="application/json,.json" style="display:none">';
 
-  h += '<div class="set-label">App</div>' +
+  h += '<div class="set-label">Lock and display</div>' +
+    '<div class="set-group">' +
+    (function () {
+      var hasPin = !!readPinRecord();
+      if (!hasPin) {
+        return '<button class="set-row" data-act="set-pin" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('lock', 18) + '</span>' +
+          '<span class="grow"><span class="st">Set a PIN</span><span class="ss">Ask for 4 digits when the app opens</span></span><span class="badge navy">Off</span></button>';
+      }
+      return '<div class="set-row" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('lock', 18) + '</span>' +
+        '<span class="grow"><span class="st">PIN lock</span><span class="ss">Asked when the app opens or after 2 minutes away</span></span><span class="badge paid">On</span></div>' +
+        '<button class="set-row" data-act="change-pin"><span class="si">' + icon('key', 18) + '</span>' +
+        '<span class="grow"><span class="st">Change PIN</span><span class="ss">Use a new 4-digit code</span></span>' + icon('chevronRight', 18, 'chev') + '</button>';
+    })() +
+    '<button class="set-row" data-act="toggle-large-text" aria-pressed="' + (s.largeText ? 'true' : 'false') + '"><span class="si" style="font-weight:800;font-size:15px;letter-spacing:-.5px">Aa</span>' +
+    '<span class="grow"><span class="st">Large text</span><span class="ss">About 15% bigger text everywhere</span></span>' +
+    '<span class="switch' + (s.largeText ? ' on' : '') + '"><i></i></span></button>' +
+    '<div class="tiny muted" style="padding:11px 16px 14px;line-height:1.55">' +
+    (readPinRecord()
+      ? 'Forgot your PIN? It cannot be shown. The only way to reset it is to restore a backup file.'
+      : 'A PIN keeps your residents\u2019 details private if someone borrows your phone. It stays on this phone only.') + '</div>' +
+    '</div>' +
+
+    '<div class="set-label">App</div>' +
     '<div class="set-group">' +
     '<button class="set-row" data-act="install-help"><span class="si">' + icon('phone', 18) + '</span>' +
     '<span class="grow"><span class="st">Install on home screen</span><span class="ss">Open like a normal app, works offline</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
@@ -3103,20 +3368,54 @@ function sheetInstall() {
 /* ===========================================================================
    24. BACKUP / RESTORE
    =========================================================================== */
-function backupData() {
+function backupPayload() {
+  return {
+    name: 'hostel-backup-' + todayISO() + '.json',
+    payload: { app: 'Hostel Manager', version: 1, exportedAt: new Date().toISOString(), data: db }
+  };
+}
+function markBackedUp() {
   db.meta.lastBackup = todayISO();
   save();
-  var payload = {
-    app: 'Hostel Manager',
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    data: db
-  };
-  var name = 'hostel-backup-' + todayISO() + '.json';
-  if (downloadFile(name, JSON.stringify(payload, null, 2), 'application/json')) {
+  render();
+}
+function backupData() {
+  var b = backupPayload();
+  if (downloadFile(b.name, JSON.stringify(b.payload, null, 2), 'application/json')) {
+    markBackedUp();
     toast('Backup saved \u00B7 keep it safe', 'good');
-    render();
   }
+}
+function shareBackup() {
+  var b = backupPayload();
+  var json = JSON.stringify(b.payload, null, 2);
+  var file = null;
+  try { file = new File([json], b.name, { type: 'application/json' }); } catch (e) { file = null; }
+  var nav = navigator;
+  var can = false;
+  if (file && nav && typeof nav.share === 'function' && typeof nav.canShare === 'function') {
+    try { can = nav.canShare({ files: [file] }); } catch (e) { can = false; }
+    if (can) {
+      nav.share({ files: [file], title: 'Hostel Manager backup', text: 'Backup of my hostel data' })
+        .then(function () {
+          markBackedUp();
+          toast('Backup shared', 'good');
+        })
+        .catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          backupData();
+        });
+      return;
+    }
+  }
+  backupData();
+}
+function toggleLargeText() {
+  db.settings.largeText = !db.settings.largeText;
+  save();
+  applyUiPrefs();
+  render();
+  toast(db.settings.largeText ? 'Large text on' : 'Large text off');
 }
 function handleRestoreFile(file) {
   try {
@@ -3144,9 +3443,20 @@ function handleRestoreFile(file) {
               ui.prop = 'all'; ui.payMonth = thisMonth(); ui.payFilter = 'all';
               ui.resFilter = 'active'; ui.resQuery = '';
               ui.tab = 'home'; ui.view = { name: 'home', params: {} };
+              applyUiPrefs();
               render();
               window.scrollTo(0, 0);
-              toast('Backup restored', 'good');
+              if (ui.restoreResetPin) {
+                ui.restoreResetPin = false;
+                clearPinRecord();
+                closeSheet();
+                closeConfirm();
+                hideLock();
+                showLock('setup');
+                toast('Backup restored \u00B7 set a new PIN', 'good');
+              } else {
+                toast('Backup restored', 'good');
+              }
             } catch (e) {
               console.warn(e);
               toast('Could not restore. The file may be damaged.', 'bad');
@@ -3441,6 +3751,354 @@ function clearAllData() {
 }
 
 /* ===========================================================================
+   25b. APP LOCK (4-digit PIN)
+   =========================================================================== */
+var PIN_KEY = 'hostelManager.pin';
+var PIN_TTL_MS = 2 * 60 * 1000;
+var pinState = {
+  record: null, mode: 'none', entry: '', first: '', error: '', showHelp: false,
+  busy: false, attempts: 0, blockedUntil: 0, shake: false
+};
+var lockHiddenAt = 0;
+
+function readPinRecord() {
+  try {
+    var raw = localStorage.getItem(PIN_KEY);
+    if (!raw) return null;
+    var rec = JSON.parse(raw);
+    return rec && rec.hash && rec.salt ? rec : null;
+  } catch (e) { return null; }
+}
+function writePinRecord(rec) {
+  try { localStorage.setItem(PIN_KEY, JSON.stringify(rec)); return true; }
+  catch (e) { console.warn('PIN not saved', e); return false; }
+}
+function clearPinRecord() {
+  try { localStorage.removeItem(PIN_KEY); } catch (e) {}
+  pinState.record = null;
+}
+function randomSalt() {
+  var out = '';
+  try {
+    var arr = new Uint8Array(16);
+    if (!window.crypto || !window.crypto.getRandomValues) throw new Error('no crypto');
+    window.crypto.getRandomValues(arr);
+    for (var i = 0; i < arr.length; i++) out += ('0' + arr[i].toString(16)).slice(-2);
+  } catch (e) {
+    out = '';
+    for (var j = 0; j < 32; j++) out += Math.floor(Math.random() * 16).toString(16);
+  }
+  return out;
+}
+function hexFromBytes(bytes) {
+  var out = '';
+  for (var i = 0; i < bytes.length; i++) out += ('0' + bytes[i].toString(16)).slice(-2);
+  return out;
+}
+function fallbackHash(value, salt) {
+  var s = 'hostel:' + salt + ':' + value;
+  var h1 = 2166136261 >>> 0, h2 = 2246822519 >>> 0;
+  for (var round = 0; round < 20000; round++) {
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i) + round;
+      h1 = (h1 ^ c) >>> 0; h1 = Math.imul(h1, 16777619) >>> 0;
+      h2 = (h2 + c) >>> 0; h2 = Math.imul(h2, 2654435761) >>> 0;
+    }
+  }
+  return ('00000000' + h1.toString(16)).slice(-8) + ('00000000' + h2.toString(16)).slice(-8);
+}
+async function computePinHash(value, salt, prefer) {
+  var subtle = window.crypto && window.crypto.subtle;
+  if (prefer !== 'xfnv' && subtle && window.TextEncoder && window.Uint8Array) {
+    try {
+      var enc = new TextEncoder();
+      var bytes = new Uint8Array(salt.match(/.{1,2}/g).map(function (h) { return parseInt(h, 16); }));
+      var key = await subtle.importKey('raw', enc.encode(String(value)), { name: 'PBKDF2' }, false, ['deriveBits']);
+      var bits = await subtle.deriveBits({ name: 'PBKDF2', salt: bytes, iterations: 60000, hash: 'SHA-256' }, key, 256);
+      return { algo: 'pbkdf2', hash: hexFromBytes(new Uint8Array(bits)) };
+    } catch (e) { /* fall through to the simple hash */ }
+  }
+  return { algo: 'xfnv', hash: fallbackHash(String(value), salt) };
+}
+async function setPinRecord(value) {
+  var salt = randomSalt();
+  var made = await computePinHash(value, salt);
+  var rec = { v: 1, algo: made.algo, salt: salt, hash: made.hash, at: new Date().toISOString() };
+  if (!writePinRecord(rec)) return false;
+  pinState.record = rec;
+  return true;
+}
+async function checkPin(value) {
+  var rec = pinState.record || readPinRecord();
+  if (!rec) return true;
+  var first = await computePinHash(value, rec.salt, rec.algo);
+  if (first.hash === rec.hash) return true;
+  if (first.algo !== rec.algo) {
+    var fb = await computePinHash(value, rec.salt, 'xfnv');
+    if (fb.hash === rec.hash) return true;
+  }
+  return false;
+}
+function lockHelpHTML() {
+  return '<div class="lock-help">' +
+    '<b>Forgot your PIN?</b>' +
+    'Your PIN cannot be shown or recovered. The only way to reset it is to restore a backup file.' +
+    '<button class="btn block" data-act="pin-restore">' + icon('upload', 18) + ' Restore a backup</button>' +
+    '<button class="btn ghost block" data-act="pin-help-close">Back to PIN</button>' +
+    '<input type="file" id="lockRestoreFile" accept="application/json,.json" style="display:none">' +
+    '</div>';
+}
+function lockHTML() {
+  var isSetup = pinState.mode === 'setup' || pinState.mode === 'confirm';
+  var title = pinState.mode === 'setup' ? 'Create your PIN'
+    : pinState.mode === 'confirm' ? 'Confirm your PIN' : 'Enter your PIN';
+  var sub = pinState.mode === 'setup'
+    ? 'Choose 4 digits to keep your hostel data private.'
+    : pinState.mode === 'confirm'
+      ? 'Type the same 4 digits again.'
+      : 'Welcome back' + (db.settings.ownerName ? ', ' + String(db.settings.ownerName).split(' ')[0] : '') + '.';
+  var dots = [0, 1, 2, 3].map(function (i) {
+    return '<span class="' + (i < pinState.entry.length ? 'on' : '') + '"></span>';
+  }).join('');
+  var keys = '';
+  [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(function (n) {
+    keys += '<button class="lock-key" data-act="pin-digit" data-digit="' + n + '" aria-label="' + n + '">' + n + '</button>';
+  });
+  var body = pinState.showHelp ? lockHelpHTML()
+    : '<div class="lock-keypad">' + keys +
+        '<span class="lock-key blank"></span>' +
+        '<button class="lock-key" data-act="pin-digit" data-digit="0" aria-label="0">0</button>' +
+        '<button class="lock-key delete" data-act="pin-delete" aria-label="Delete last digit">' + icon('x', 20) + '</button>' +
+      '</div>' +
+      (pinState.mode === 'locked'
+        ? '<button class="lock-link" data-act="pin-help">Forgot PIN?</button>'
+        : '<button class="lock-link" data-act="pin-cancel">Not now</button>');
+  return '<div class="lock-screen" data-mode="' + pinState.mode + '">' +
+    '<div class="lock-glow"></div>' +
+    '<div class="lock-inner">' +
+    '<div class="lock-mark">' + icon('lock', 26) + '</div>' +
+    '<div class="lock-brand">HOSTEL MANAGER</div>' +
+    '<div class="lock-title">' + title + '</div>' +
+    '<div class="lock-sub">' + esc(sub) + '</div>' +
+    '<div class="pin-dots' + (pinState.error ? ' error' : '') + (pinState.shake ? ' shake' : '') + '">' + dots + '</div>' +
+    '<div class="lock-msg">' + esc(pinState.error || ' ') + '</div>' +
+    body +
+    '</div>' +
+    '<div class="lock-foot">' + (isSetup ? 'You can change this later in Settings.' : 'Your data stays on this phone.') + '</div>' +
+    '</div>';
+}
+function renderLock() {
+  var layer = $('#lockLayer');
+  if (!layer) return;
+  if (pinState.mode === 'none') {
+    layer.classList.remove('open');
+    layer.innerHTML = '';
+    return;
+  }
+  layer.classList.add('open');
+  layer.innerHTML = lockHTML();
+}
+function showLock(mode) {
+  pinState.mode = mode;
+  pinState.entry = '';
+  pinState.first = '';
+  pinState.error = '';
+  pinState.showHelp = false;
+  pinState.busy = false;
+  pinState.shake = false;
+  pinState.attempts = 0;
+  pinState.blockedUntil = 0;
+  document.body.classList.add('is-locked');
+  renderLock();
+}
+function hideLock() {
+  var was = pinState.mode !== 'none';
+  pinState.mode = 'none';
+  pinState.entry = '';
+  pinState.first = '';
+  pinState.error = '';
+  pinState.showHelp = false;
+  renderLock();
+  if (was && !ui.sheet && !ui.confirm) document.body.classList.remove('is-locked');
+}
+function lockApp() {
+  if (pinState.mode !== 'none') return;
+  if (!readPinRecord()) return;
+  try { closeSheet(); } catch (e) {}
+  try { closeConfirm(); } catch (e) {}
+  ui.revealedIds = {};
+  ui.restoreResetPin = false;
+  showLock('locked');
+}
+function initLock() {
+  pinState.record = readPinRecord();
+  if (pinState.record) showLock('locked');
+}
+function pinPress(digit) {
+  if (pinState.mode === 'none' || pinState.busy || pinState.showHelp) return;
+  if (pinState.blockedUntil && Date.now() < pinState.blockedUntil) {
+    var left = Math.ceil((pinState.blockedUntil - Date.now()) / 1000);
+    pinState.error = 'Too many tries. Wait ' + left + ' seconds.';
+    renderLock();
+    return;
+  }
+  if (pinState.entry.length >= 4) return;
+  pinState.entry += String(digit);
+  pinState.error = '';
+  renderLock();
+  if (pinState.entry.length === 4) {
+    pinState.busy = true;
+    setTimeout(onPinComplete, 140);
+  }
+}
+function pinBackspace() {
+  if (pinState.mode === 'none' || pinState.busy) return;
+  pinState.entry = pinState.entry.slice(0, -1);
+  pinState.error = '';
+  renderLock();
+}
+async function onPinComplete() {
+  var entered = pinState.entry;
+  var mode = pinState.mode;
+  if (mode === 'setup') {
+    pinState.first = entered;
+    pinState.mode = 'confirm';
+    pinState.entry = '';
+    pinState.busy = false;
+    pinState.error = '';
+    renderLock();
+    return;
+  }
+  if (mode === 'confirm') {
+    if (entered !== pinState.first) {
+      pinState.mode = 'setup';
+      pinState.first = '';
+      pinState.entry = '';
+      pinState.busy = false;
+      pinState.error = 'Those digits did not match. Try again.';
+      pinState.shake = true;
+      renderLock();
+      setTimeout(function () { pinState.shake = false; if (pinState.mode !== 'none') renderLock(); }, 360);
+      return;
+    }
+    var saved = await setPinRecord(entered);
+    pinState.busy = false;
+    if (!saved) {
+      // Never trap the owner outside their own data: run unlocked and say so.
+      hideLock();
+      render();
+      toast('This phone could not save a PIN, so the app cannot lock.', 'bad');
+      return;
+    }
+    hideLock();
+    render();
+    toast('PIN set \u00B7 keep it safe', 'good');
+    return;
+  }
+  // locked
+  var good = await checkPin(entered);
+  pinState.busy = false;
+  if (good) {
+    pinState.attempts = 0;
+    pinState.blockedUntil = 0;
+    hideLock();
+    render();
+    return;
+  }
+  pinState.attempts += 1;
+  pinState.entry = '';
+  pinState.error = 'Incorrect PIN. Try again.';
+  if (pinState.attempts >= 5) {
+    pinState.attempts = 0;
+    pinState.blockedUntil = Date.now() + 30000;
+    pinState.error = 'Too many tries. Wait 30 seconds.';
+  }
+  pinState.shake = true;
+  renderLock();
+  setTimeout(function () { pinState.shake = false; if (pinState.mode !== 'none') renderLock(); }, 360);
+  if (pinState.blockedUntil) {
+    setTimeout(function () {
+      if (pinState.mode === 'locked') { pinState.error = ''; renderLock(); }
+    }, 30500);
+  }
+}
+function focusPinRestore(which) {
+  ui.restoreResetPin = true;
+  var el = $('#' + which);
+  if (el) el.click();
+}
+
+/* --- change PIN sheet --- */
+function sheetChangePin() {
+  var body = '<form data-form="changePin" novalidate>' +
+    '<div class="sheet-body">' +
+    '<div class="field"><label>Current PIN</label><input class="input pin-input" type="password" name="current" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="4 digits"><div class="field-error"></div></div>' +
+    '<div class="field"><label>New PIN</label><input class="input pin-input" type="password" name="next" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits"><div class="field-error"></div></div>' +
+    '<div class="field"><label>Confirm new PIN</label><input class="input pin-input" type="password" name="confirm" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits"><div class="field-error"></div></div>' +
+    '<div class="card tight" style="margin-top:8px;background:#FFF7ED;border:1px solid #FDE3C0;box-shadow:none">' +
+    '<div class="small" style="color:#92400E;line-height:1.5"><b>Forgot the current PIN?</b><br>It cannot be shown. The only way to reset it is to restore a backup file.</div>' +
+    '<button type="button" class="btn ghost sm block" style="margin-top:10px" data-act="pin-reset-restore">' + icon('upload', 17) + ' Restore a backup</button>' +
+    '</div>' +
+    '<div class="field-hint">You will need this PIN each time the app opens.</div>' +
+    '<div style="height:6px"></div></div>' +
+    '<div class="sheet-foot"><button class="btn block" type="submit">Save new PIN</button></div>' +
+    '</form>';
+  return sheetShell({ title: 'Change PIN', sub: 'Keep your hostel data private', body: body });
+}
+async function saveChangePinForm(form) {
+  clearErrors(form);
+  var cur = String(form.elements['current'].value || '').trim();
+  var nxt = String(form.elements['next'].value || '').trim();
+  var cfm = String(form.elements['confirm'].value || '').trim();
+  var ok = true;
+  if (!/^\d{4}$/.test(cur)) ok = setError(fieldOf(form.elements['current']), 'Enter your current 4-digit PIN');
+  if (ok && !/^\d{4}$/.test(nxt)) ok = setError(fieldOf(form.elements['next']), 'Use exactly 4 digits');
+  if (ok && nxt === cur) ok = setError(fieldOf(form.elements['next']), 'Choose a different PIN');
+  if (ok && nxt !== cfm) ok = setError(fieldOf(form.elements['confirm']), 'The new PINs do not match');
+  if (!ok) return;
+  var good = await checkPin(cur);
+  if (!good) { setError(fieldOf(form.elements['current']), 'That is not the current PIN'); return; }
+  var saved = await setPinRecord(nxt);
+  if (!saved) { toast('Could not save the new PIN', 'bad'); return; }
+  closeSheet();
+  toast('PIN changed', 'good');
+}
+
+/* ===========================================================================
+   25c. PAYMENT RECEIPT
+   =========================================================================== */
+function receiptMessage(info) {
+  var r = residentById(info.residentId);
+  var owner = db.settings.ownerName || (r ? propName(r.propertyId) : 'Hostel Manager');
+  var tail = info.balance > 0 ? 'Balance left: ' + money(info.balance) + '.' : 'Rent fully paid.';
+  return 'Hello ' + (r ? r.name : '') + ', we received ' + money(info.amount) + ' for ' + fmtMonth(info.month) +
+    ' rent on ' + fmtDate(info.date) + '. ' + tail + ' Thank you \u2014 ' + owner + '.';
+}
+function sheetReceipt() {
+  var info = ui.receipt;
+  if (!info) {
+    return sheetShell({ title: 'Payment recorded', body: '<div class="sheet-body"><p class="muted">Payment saved.</p></div>' });
+  }
+  var r = residentById(info.residentId);
+  var text = receiptMessage(info);
+  var body = '<div class="sheet-body">' +
+    '<div class="receipt-hero">' + icon('checkCircle', 28) +
+    '<div class="ra">' + money(info.amount) + '</div>' +
+    '<div class="rs">' + esc(fmtMonth(info.month)) + ' rent \u00B7 ' + esc(fmtDate(info.date)) + '</div></div>' +
+    '<div class="card tight" style="box-shadow:none;border:1px solid var(--line)">' +
+    '<div class="kv"><div class="k">Resident</div><div class="v">' + esc(r ? r.name : '\u2014') + '</div></div>' +
+    '<div class="kv"><div class="k">Received</div><div class="v t-num">' + money(info.amount) + ' \u00B7 ' + esc(info.mode) + '</div></div>' +
+    '<div class="kv"><div class="k">Month</div><div class="v">' + esc(fmtMonth(info.month)) + '</div></div>' +
+    '<div class="kv"><div class="k">Balance left</div><div class="v t-num" style="color:' + (info.balance > 0 ? 'var(--red)' : 'var(--green)') + '">' + (info.balance > 0 ? money(info.balance) : 'Fully paid') + '</div></div>' +
+    '</div>' +
+    (r ? '<div style="margin-top:14px">' + waButton(r, text, { cls: 'btn wa block', iconSize: 19, label: 'Send receipt on WhatsApp' }) + '</div>' : '') +
+    '<div class="field-hint center" style="margin-top:10px">A short message with the name, amount, month, balance and date.</div>' +
+    '<div style="height:8px"></div></div>' +
+    '<div class="sheet-foot"><button class="btn ghost block" data-act="receipt-done">Done</button></div>';
+  return sheetShell({ title: 'Payment recorded', sub: r ? r.name : '', body: body });
+}
+
+/* ===========================================================================
    26. Render dispatcher
    =========================================================================== */
 function render() {
@@ -3467,7 +4125,7 @@ function render() {
 }
 function renderTabbar() {
   $('#tabbar').innerHTML = '<div class="tabbar-inner">' + TABS.map(function (t) {
-    var active = ui.tab === t.id;
+    var active = ui.tab === t.id && ui.view.name !== 'settings';
     return '<button class="tab" data-act="tab" data-tab="' + t.id + '" aria-current="' + (active ? 'page' : 'false') + '" aria-label="' + t.label + '">' +
       '<span class="ti">' + icon(t.icon, 21) + '</span>' + t.label + '</button>';
   }).join('') + '</div>';
@@ -3520,7 +4178,7 @@ document.addEventListener('click', function (e) {
         back();
         break;
       case 'settings':
-        ui.tab = 'home';
+        ui.settingsReturn = ui.tab;
         setView('settings');
         break;
       case 'add-room':
@@ -3759,6 +4417,51 @@ document.addEventListener('click', function (e) {
       case 'backup':
         backupData();
         break;
+      case 'share-backup':
+        shareBackup();
+        break;
+      case 'set-pin':
+        showLock('setup');
+        break;
+      case 'pin-cancel':
+        hideLock();
+        break;
+      case 'change-pin':
+        openSheet('changePin');
+        break;
+      case 'toggle-large-text':
+        toggleLargeText();
+        break;
+      case 'toggle-id':
+        if (id) {
+          ui.revealedIds[id] = !ui.revealedIds[id];
+          render();
+        }
+        break;
+      case 'receipt-done':
+        closeSheet();
+        render();
+        break;
+      case 'pin-digit':
+        pinPress(el.getAttribute('data-digit'));
+        break;
+      case 'pin-delete':
+        pinBackspace();
+        break;
+      case 'pin-help':
+        pinState.showHelp = true;
+        renderLock();
+        break;
+      case 'pin-help-close':
+        pinState.showHelp = false;
+        renderLock();
+        break;
+      case 'pin-restore':
+        focusPinRestore('lockRestoreFile');
+        break;
+      case 'pin-reset-restore':
+        focusPinRestore('restoreFile');
+        break;
       case 'restore':
         var rf = $('#restoreFile');
         if (rf) rf.click();
@@ -3806,6 +4509,7 @@ document.addEventListener('submit', function (e) {
     else if (kind === 'expense') saveExpenseForm(form);
     else if (kind === 'vacate') saveVacateForm(form);
     else if (kind === 'settings') saveSettingsForm(form);
+    else if (kind === 'changePin') saveChangePinForm(form);
   } catch (err) {
     console.error('Form save failed', err);
     toast('Could not save. Please check the details.', 'bad');
@@ -3813,6 +4517,11 @@ document.addEventListener('submit', function (e) {
 });
 
 document.addEventListener('input', function (e) {
+  if (e.target && e.target.classList && e.target.classList.contains('pin-input')) {
+    var clean = String(e.target.value || '').replace(/\D/g, '').slice(0, 4);
+    if (clean !== e.target.value) e.target.value = clean;
+    return;
+  }
   if (e.target && e.target.id === 'resSearch') {
     ui.resQuery = e.target.value;
     var list = $('#resList');
@@ -3824,7 +4533,7 @@ document.addEventListener('change', function (e) {
   var el = e.target;
   if (!el || !el.getAttribute) return;
   var change = el.getAttribute('data-act-change');
-  if (el.id === 'restoreFile') {
+  if (el.id === 'restoreFile' || el.id === 'lockRestoreFile') {
     var file = el.files && el.files[0];
     el.value = '';
     if (file) handleRestoreFile(file);
@@ -3993,6 +4702,63 @@ function toast(msg, kind) {
   }, 3200);
 }
 
+var swReloaded = false;
+function setupSWUpdates() {
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  var hadController = !!navigator.serviceWorker.controller;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        try { reg.waiting.postMessage('SKIP_WAITING'); } catch (e) {}
+      }
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            try { nw.postMessage('SKIP_WAITING'); } catch (e) {}
+          }
+        });
+      });
+    }).catch(function (e) { console.warn('SW not registered', e); });
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (swReloaded) return;
+      swReloaded = true;
+      if (!hadController) { hadController = true; return; } // first install, nothing to announce
+      toast('Updated to latest version', 'good');
+    });
+  });
+}
+function setupLockWatch() {
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+      if (pinState.mode === 'none') lockHiddenAt = Date.now();
+      return;
+    }
+    if (document.visibilityState === 'visible') {
+      var away = lockHiddenAt ? Date.now() - lockHiddenAt : 0;
+      lockHiddenAt = 0;
+      if (away > PIN_TTL_MS) lockApp();
+    }
+  });
+  window.addEventListener('pagehide', function () {
+    if (pinState.mode === 'none') lockHiddenAt = Date.now();
+  });
+  window.addEventListener('pageshow', function () {
+    var away = lockHiddenAt ? Date.now() - lockHiddenAt : 0;
+    lockHiddenAt = 0;
+    if (away > PIN_TTL_MS) lockApp();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (pinState.mode === 'none') return;
+    if (/^[0-9]$/.test(e.key)) { e.preventDefault(); pinPress(e.key); }
+    else if (e.key === 'Backspace') { e.preventDefault(); pinBackspace(); }
+  });
+  window.addEventListener('pointerdown', function () {
+    if (pinState.mode === 'none') lockHiddenAt = 0;
+  }, true);
+}
+
 function init() {
   loadDB();
   ensureBedsForRooms(db);
@@ -4004,13 +4770,12 @@ function init() {
   ui.payMonth = thisMonth();
   ui.report.year = new Date().getFullYear();
   ui.report.month = new Date().getMonth() + 1;
+  applyUiPrefs();
   render();
-
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW not registered', e); });
-    });
-  }
+  requestPersistentStorage();
+  setupSWUpdates();
+  setupLockWatch();
+  initLock();
 }
 
 init();

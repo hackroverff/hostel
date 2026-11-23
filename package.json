@@ -4,7 +4,7 @@
   "private": true,
   "description": "A single-file, offline-first hostel rent manager for one owner. Plain HTML/CSS/JS.",
   "scripts": {
-    "test": "node tests/smoke.test.js && node tests/logic.test.js && node tests/details.test.js",
+    "test": "node tests/smoke.test.js && node tests/logic.test.js && node tests/details.test.js && node tests/security.test.js",
     "serve": "python3 -m http.server 8080"
   },
   "devDependencies": {

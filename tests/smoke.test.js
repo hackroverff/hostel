@@ -198,7 +198,12 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   ok(payForm.elements['mode'].value === 'UPI', 'payment mode chip sets hidden input');
   clickAct('save-payment');
   await settle();
-  ok(/Payment saved/.test(text(q('#toast'))), 'payment toast shown: ' + text(q('#toast')));
+  ok(!!q('#sheetLayer .receipt-hero'), 'receipt sheet shown after saving');
+  ok(/\u20B9/.test(text(q('#sheetLayer .receipt-hero .ra'))), 'receipt shows the amount: ' + text(q('#sheetLayer .receipt-hero .ra')));
+  ok(/Send receipt on WhatsApp/.test(text(q('#sheetLayer'))), 'receipt offers WhatsApp send');
+  clickAct('receipt-done');
+  await settle();
+  ok(!!q('.month-nav'), 'back on payments list after receipt');
   const after = db();
   const newReceipts = after.payments.reduce((s, p) => s + (p.receipts || []).length, 0) - before.payments.reduce((s, p) => s + (p.receipts || []).length, 0);
   ok(newReceipts === 1, 'one receipt stored');
