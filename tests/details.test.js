@@ -102,7 +102,7 @@ function boot(seed) {
   ok(/^https:\/\/wa\.me\/919\d{9}\?text=/.test(href), 'wa.me link has 91 + 10 digits and text: ' + href.slice(0, 30));
   const msg = decodeURIComponent(href.split('?text=')[1] || '');
   ok(!/\{\w+\}/.test(msg), 'no unfilled placeholders in message');
-  ok(/Hello /.test(msg) && /hostel rent of ₹/.test(msg), 'message starts with template and amount');
+  ok(/Hello /.test(msg) && /your dues for/.test(msg) && /₹5,200/.test(msg), 'message starts with template and amount');
   ok(/pending/.test(msg) && /Thank you/.test(msg), 'message contains pending + thanks');
   ok(/UPI: sathvika@okhdfcbank/.test(msg), 'UPI filled from settings: ' + msg);
   ok(/\d{1,2} [A-Z][a-z]{2} \d{4}/.test(msg), 'date filled in 22 Nov 2026 style');
@@ -194,7 +194,7 @@ function boot(seed) {
   ok(data.settings.dueDay === 28, 'due day saved');
   t.act('tab', '[data-tab="home"]');
   await t.settle();
-  ok(/Rent pending/.test(text(t.q('.screen'))), 'home still fine after settings change');
+  ok(/pending/.test(text(t.q('.screen'))), 'home still fine after settings change');
 
   // ---------------------------------------------------------- reminder counts grouping
   t.act('tab', '[data-tab="payments"]');

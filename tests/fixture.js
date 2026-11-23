@@ -70,7 +70,8 @@ function seedFixture() {
   const addDue = (residentId, month, due, receipts) => {
     payments.push({
       id: 'pay_' + residentId.slice(4) + '_' + month.replace('-', ''),
-      residentId: residentId, month: month, due: due, receipts: receipts || [],
+      residentId: residentId, month: month, rent: due, electricity: null,
+      electricityManual: false, due: due, receipts: receipts || [],
       createdAt: now
     });
   };
@@ -107,14 +108,15 @@ function seedFixture() {
   return {
     version: 1,
     properties: [
-      { id: L, name: 'Sathvika MV Ladies Hostel' },
-      { id: M, name: 'Sathvika MV Men\u2019s Hostel' }
+      { id: L, name: 'Sathvika MV Ladies Hostel', rent: 5200, advance: 5200, electricity: { mode: 'split', amount: 0 } },
+      { id: M, name: 'Sathvika MV Men\u2019s Hostel', rent: 4500, advance: 4500, electricity: { mode: 'fixed', amount: 0 } }
     ],
     rooms: roomList,
     beds: beds,
     residents: residents,
     payments: payments,
     expenses: expenses,
+    electricityBills: [],
     settings: {
       dueDay: 5,
       ownerName: 'Sathvika Reddy',
