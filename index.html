@@ -223,6 +223,7 @@ img{max-width:100%;display:block}
 .badge.navy{color:var(--navy);background:var(--navy-50)}
 .badge.overdue{color:#fff;background:var(--red)}
 .badge .dot{width:6px;height:6px}
+.btn.elec-btn{justify-content:space-between;gap:8px;padding-left:16px;padding-right:14px}
 
 /* ---------- buttons ---------- */
 .btn{
@@ -945,21 +946,38 @@ function initials(name) {
    2. Storage
    =========================================================================== */
 var STORE_KEY = 'hostelManager.v1';
-var DEFAULT_TEMPLATE = 'Hello {name}, your hostel rent of \u20B9{balance} for {month} is pending. Please pay by {date}. UPI: {upi}. Thank you.';
+var OLD_TEMPLATE = 'Hello {name}, your hostel rent of \u20B9{balance} for {month} is pending. Please pay by {date}. UPI: {upi}. Thank you.';
+var DEFAULT_TEMPLATE = 'Hello {name}, your dues for {month} are \u20B9{balance}. Rent \u20B9{rent} + Electricity {electricity}. Please pay by {date}. UPI: {upi}. Thank you.';
+var PROPERTY_DEFAULTS = {
+  prop_ladies: { rent: 6500, advance: 6500, mode: 'split', amount: 0 },
+  prop_mens: { rent: 4000, advance: 4000, mode: 'fixed', amount: 250 }
+};
+function defaultPropertyConfig(propId) {
+  var d = PROPERTY_DEFAULTS[propId];
+  if (d) return { rent: d.rent, advance: d.advance, mode: d.mode, amount: d.amount };
+  return { rent: 0, advance: 0, mode: 'fixed', amount: 0 };
+}
 var db = null;
 
 function blankDB() {
   return {
     version: 1,
     properties: [
-      { id: 'prop_ladies', name: 'Sathvika MV Ladies Hostel' },
-      { id: 'prop_mens', name: 'Sathvika MV Men\u2019s Hostel' }
+      {
+        id: 'prop_ladies', name: 'Sathvika MV Ladies Hostel', rent: 6500, advance: 6500,
+        electricity: { mode: 'split', amount: 0 }
+      },
+      {
+        id: 'prop_mens', name: 'Sathvika MV Men\u2019s Hostel', rent: 4000, advance: 4000,
+        electricity: { mode: 'fixed', amount: 250 }
+      }
     ],
     rooms: [],
     beds: [],
     residents: [],
     payments: [],
     expenses: [],
+    electricityBills: [],
     settings: {
       dueDay: 5,
       ownerName: '',
@@ -998,9 +1016,25 @@ function upgrade(d) {
   d.residents = Array.isArray(d.residents) ? d.residents : [];
   d.payments = Array.isArray(d.payments) ? d.payments : [];
   d.expenses = Array.isArray(d.expenses) ? d.expenses : [];
+  d.electricityBills = Array.isArray(d.electricityBills) ? d.electricityBills : [];
   d.settings = Object.assign({}, base.settings, d.settings || {});
   d.meta = Object.assign({}, base.meta, d.meta || {});
   d.version = 1;
+  if (d.settings.waTemplate === OLD_TEMPLATE) d.settings.waTemplate = DEFAULT_TEMPLATE;
+  d.properties.forEach(function (prop) {
+    var def = defaultPropertyConfig(prop.id);
+    if (typeof prop.rent !== 'number' || !isFinite(prop.rent)) prop.rent = def.rent;
+    if (typeof prop.advance !== 'number' || !isFinite(prop.advance)) prop.advance = def.advance;
+    var elec = prop.electricity || {};
+    prop.electricity = {
+      mode: elec.mode === 'split' ? 'split' : elec.mode === 'fixed' ? 'fixed' : def.mode,
+      amount: typeof elec.amount === 'number' && isFinite(elec.amount) ? elec.amount : def.amount
+    };
+  });
+  d.electricityBills.forEach(function (b) {
+    b.amount = num(b.amount);
+    if (!b.id) b.id = uid('bill');
+  });
   // repair relations
   d.rooms.forEach(function (r) {
     r.sharing = num(r.sharing) || 1;
@@ -1016,6 +1050,10 @@ function upgrade(d) {
     p.due = num(p.due);
     p.receipts = Array.isArray(p.receipts) ? p.receipts : [];
     if (!p.id) p.id = uid('pay');
+    if (typeof p.rent !== 'number' || !isFinite(p.rent)) p.rent = Math.max(0, p.due - num(p.electricity || 0));
+    p.rent = num(p.rent);
+    p.electricity = (p.electricity === null || typeof p.electricity === 'undefined') ? null : num(p.electricity);
+    p.electricityManual = !!p.electricityManual;
     syncPayment(p);
   });
   d.residents.forEach(function (r) {
@@ -1103,6 +1141,102 @@ function syncPayment(p) {
   p.paid = paidOf(p);
   p.status = dueStatus(p);
   return p;
+}
+
+/* --- electricity: per hostel, per month -------------------------------------
+   Fixed per person: every due carries the same amount.
+   Split hostel bill: one bill per hostel per month, shared equally between
+   everyone who was at the hostel at any point in that month.               */
+function propById(id) {
+  return db.properties.filter(function (p) { return p.id === id; })[0] || null;
+}
+function propertyRent(propId) {
+  var prop = propById(propId);
+  if (prop && num(prop.rent) > 0) return num(prop.rent);
+  return defaultPropertyConfig(propId).rent;
+}
+function propertyAdvance(propId) {
+  var prop = propById(propId);
+  if (prop && num(prop.advance) >= 0 && typeof prop.advance === 'number') return num(prop.advance);
+  return defaultPropertyConfig(propId).advance;
+}
+function propElectricity(propId) {
+  var p = propById(propId);
+  var cfg = (p && p.electricity) || null;
+  if (!cfg) {
+    var def = defaultPropertyConfig(propId);
+    return { mode: def.mode, amount: def.amount };
+  }
+  return { mode: cfg.mode === 'split' ? 'split' : 'fixed', amount: num(cfg.amount) };
+}
+function electricityBillFor(propId, mk) {
+  var list = db.electricityBills || [];
+  return list.filter(function (b) { return b.propertyId === propId && b.month === mk; })[0] || null;
+}
+function residentsActiveInMonth(propId, mk) {
+  var start = mk + '-01';
+  var end = monthEndISO(mk);
+  return db.residents.filter(function (r) {
+    if (propId && propId !== 'all' && r.propertyId !== propId) return false;
+    var joined = String(r.joiningDate || '');
+    if (joined && joined > end) return false;
+    if (r.status === 'Vacated') {
+      var left = String(r.vacatingDate || '');
+      if (left && left < start) return false;
+    }
+    return true;
+  });
+}
+function electricityShare(propId, mk) {
+  var cfg = propElectricity(propId);
+  if (cfg.mode === 'fixed') return cfg.amount;
+  var bill = electricityBillFor(propId, mk);
+  if (!bill) return null;
+  var count = residentsActiveInMonth(propId, mk).length;
+  if (!count) return null;
+  return Math.round(num(bill.amount) / count);
+}
+/* Recompute every due's electricity line, then the total due. Manual edits win. */
+function syncElectricity() {
+  if (!db) return false;
+  var changed = false;
+  var shareCache = {};
+  db.payments.forEach(function (p) {
+    var r = residentById(p.residentId);
+    if (!r) return;
+    var cfg = propElectricity(r.propertyId);
+    var next;
+    if (p.electricityManual) next = num(p.electricity);
+    else if (cfg.mode === 'fixed') next = cfg.amount;
+    else {
+      var key = r.propertyId + '|' + p.month;
+      if (!(key in shareCache)) shareCache[key] = electricityShare(r.propertyId, p.month);
+      var share = shareCache[key];
+      next = share === null ? null : share;
+    }
+    if (next !== p.electricity) { p.electricity = next; changed = true; }
+    var total = num(p.rent) + (p.electricity == null ? 0 : num(p.electricity));
+    if (total !== p.due) { p.due = total; changed = true; }
+    var paid = paidOf(p);
+    if (p.paid !== paid || p.status !== dueStatus(p)) {
+      syncPayment(p);
+      changed = true;
+    }
+  });
+  if (changed) save();
+  return changed;
+}
+function electricityPending(p) {
+  if (p.electricity != null) return false;
+  var r = residentById(p.residentId);
+  if (!r) return false;
+  return propElectricity(r.propertyId).mode === 'split';
+}
+function splitLine(p) {
+  var parts = ['Rent ' + money(num(p.rent))];
+  if (p.electricity == null) parts.push('Electricity pending');
+  else parts.push('Electricity ' + money(num(p.electricity)));
+  return parts.join(' \u00B7 ');
 }
 function isOverdue(p) {
   if (dueStatus(p) === 'Paid') return false;
@@ -1276,9 +1410,11 @@ function ensureDues() {
       if (joinMk && joinMk > mk) return;
       if (db.payments.some(function (p) { return p.residentId === r.id && p.month === mk; })) return;
       if (r.joiningDate && r.joiningDate > monthEndISO(mk)) return;
+      var rentAmount = rentForMonth(r, mk);
       var fresh = {
-        id: uid('pay'), residentId: r.id, month: mk,
-        due: rentForMonth(r, mk), receipts: [], createdAt: new Date().toISOString()
+        id: uid('pay'), residentId: r.id, month: mk, rent: rentAmount,
+        electricity: null, electricityManual: false, due: rentAmount,
+        receipts: [], createdAt: new Date().toISOString()
       };
       syncPayment(fresh);
       db.payments.push(fresh);
@@ -1287,6 +1423,7 @@ function ensureDues() {
   });
   if (db.meta.lastRunMonth !== cur) { db.meta.lastRunMonth = cur; changed = true; }
   if (changed) save();
+  syncElectricity();
 }
 
 /* --- WhatsApp message from template --- */
@@ -1309,7 +1446,9 @@ function reminderText(p) {
     name: r.name,
     first: String(r.name || '').split(' ')[0],
     balance: groupNum(balanceOf(p)),
-    rent: groupNum(p.due),
+    rent: groupNum(num(p.rent)),
+    electricity: p.electricity == null ? 'pending' : money(num(p.electricity)),
+    total: groupNum(p.due),
     month: fmtMonth(p.month),
     date: fmtDate(dueDate),
     upi: db.settings.upi || 'ask the owner',
@@ -1356,6 +1495,7 @@ function vacateResident(resident, vacatingDate, refundAmount, refundDate, keepDu
     });
   }
   save();
+  syncElectricity();
 }
 
 function deleteResidentDeep(resident) {
@@ -1363,6 +1503,7 @@ function deleteResidentDeep(resident) {
   db.residents = db.residents.filter(function (r) { return r.id !== resident.id; });
   db.payments = db.payments.filter(function (p) { return p.residentId !== resident.id; });
   save();
+  syncElectricity();
 }
 
 function addReceipt(payment, amount, mode, date, note) {
@@ -1421,6 +1562,7 @@ var ICONS = {
   key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8"/><path d="m16 7 2 2"/><path d="m13 10 2 2"/>',
   share: '<path d="M4 12.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"/><path d="m16 6-4-4-4 4"/><path d="M12 2v12"/>',
   eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>',
+  bolt: '<path d="m13 2-9 12h6l-1 8 9-12h-6l1-8z"/>',
   wifi: '<path d="M2 8.8a16 16 0 0 1 20 0"/><path d="M5.5 12.3a10.5 10.5 0 0 1 13 0"/><path d="M8.8 15.8a5.2 5.2 0 0 1 6.4 0"/><path d="M12 19.5h.01"/>'
 };
 function icon(name, size, cls) {
@@ -1451,7 +1593,8 @@ var ui = {
   restoreResetPin: false,
   settingsReturn: null,
   scrollMemo: {},
-  restoreScroll: false
+  restoreScroll: false,
+  elecEdit: false
 };
 
 var TABS = [
@@ -1659,11 +1802,11 @@ function renderHome() {
     '</div></div>';
 
   // rent pending
-  h += '<div class="section"><div class="section-head"><div class="section-title">Rent pending</div>' +
+  h += '<div class="section"><div class="section-head"><div class="section-title">Dues pending</div>' +
     '<button class="link-btn" data-act="tab" data-tab="payments">See all ' + icon('chevronRight', 14) + '</button></div>';
   if (!pending.length) {
     h += '<div class="card"><div class="empty" style="padding:22px 10px"><div class="eicon" style="background:var(--green-bg);color:var(--green)">' + icon('checkCircle', 26) + '</div>' +
-      '<h3>All rent collected</h3><p>No rent pending from anyone. Well done!</p></div></div>';
+      '<h3>All dues collected</h3><p>No rent or electricity pending from anyone. Well done!</p></div></div>';
   } else {
     h += '<div class="card flush"><div class="list">' + pending.map(function (p) {
       var r = residentById(p.residentId);
@@ -1704,7 +1847,10 @@ function renderRooms() {
   if (!rooms.length) {
     h += '<div class="section"><div class="card"><div class="empty"><div class="eicon">' + icon('bed', 26) + '</div>' +
       '<h3>No rooms yet</h3><p>Add your rooms and beds to get started. Beds are created automatically.</p>' +
-      '<button class="btn" data-act="add-room">' + icon('plus', 18) + ' Add room</button></div></div></div>';
+      '<button class="btn" data-act="add-room">' + icon('plus', 18) + ' Add room</button>' +
+      '<button class="btn ghost" style="margin-top:10px" data-act="quick-setup">' + icon('bolt', 18) + ' Quick setup</button>' +
+      '<div class="tiny muted" style="margin-top:8px">Fills both hostels with the usual rooms. You can edit everything later.</div>' +
+      '</div></div></div>';
     return h + '</div>';
   }
 
@@ -1956,6 +2102,55 @@ function payFilterCounts(mk) {
   };
 }
 
+function quickSetupPlan(scope) {
+  var ladies = [
+    { number: '101', floor: 1, sharing: 2 },
+    { number: '102', floor: 1, sharing: 2 },
+    { number: '103', floor: 1, sharing: 2 },
+    { number: '104', floor: 1, sharing: 3 },
+    { number: '105', floor: 1, sharing: 1 }
+  ];
+  var mens = [
+    { number: 'G1', floor: 0, sharing: 8 },
+    { number: '101', floor: 1, sharing: 8 },
+    { number: '201', floor: 2, sharing: 8 },
+    { number: '301', floor: 3, sharing: 8 }
+  ];
+  var plan = [];
+  if (scope !== 'prop_ladies') plan = plan.concat(mens.map(function (r) { return Object.assign({ propertyId: 'prop_mens' }, r); }));
+  if (scope !== 'prop_mens') plan = plan.concat(ladies.map(function (r) { return Object.assign({ propertyId: 'prop_ladies' }, r); }));
+  return plan;
+}
+function quickSetupSummary(scope) {
+  var plan = quickSetupPlan(scope);
+  return {
+    rooms: plan.length,
+    beds: plan.reduce(function (n, r) { return n + r.sharing; }, 0),
+    mensBeds: plan.filter(function (r) { return r.propertyId === 'prop_mens'; }).reduce(function (n, r) { return n + r.sharing; }, 0),
+    ladiesBeds: plan.filter(function (r) { return r.propertyId === 'prop_ladies'; }).reduce(function (n, r) { return n + r.sharing; }, 0)
+  };
+}
+function quickSetupRooms(scope) {
+  var plan = quickSetupPlan(scope);
+  plan.forEach(function (item) {
+    var prop = propById(item.propertyId);
+    var rent = prop && num(prop.rent) > 0 ? num(prop.rent) : defaultPropertyConfig(item.propertyId).rent;
+    db.rooms.push({
+      id: uid('room'), propertyId: item.propertyId, number: item.number,
+      floor: item.floor, sharing: item.sharing, beds: item.sharing, rent: rent, ac: 'Non-AC'
+    });
+  });
+  ensureBedsForRooms(db);
+  reconcileBeds();
+  ensureDues();
+  save();
+  ui.tab = 'rooms';
+  setView('rooms', {});
+  render();
+  window.scrollTo(0, 0);
+  var made = quickSetupSummary(scope);
+  toast('Added ' + made.rooms + ' rooms and ' + made.beds + ' beds', 'good');
+}
 function renderPayments() {
   var mk = ui.payMonth;
   var s = monthSummary(mk, ui.prop);
@@ -1972,6 +2167,16 @@ function renderPayments() {
     '<div class="l2">Rent due on ' + ordinal(num(db.settings.dueDay || 5)) + (mk === thisMonth() ? ' \u00B7 this month' : ' \u00B7 tap for this month') + '</div></button>' +
     '<button class="mn-btn" data-act="pay-month" data-dir="1" aria-label="Next month"' + (mk >= addMonths(thisMonth(), 2) ? ' disabled style="opacity:.35"' : '') + '>' + icon('chevronRight', 20) + '</button>' +
     '</div>';
+
+  var splitProps = db.properties.filter(function (prop) {
+    return propElectricity(prop.id).mode === 'split' && (ui.prop === 'all' || ui.prop === prop.id);
+  });
+  if (splitProps.length) {
+    var shownBill = splitProps.length === 1 ? electricityBillFor(splitProps[0].id, mk) : null;
+    h += '<button class="btn ghost block elec-btn" data-act="elec-bill" style="margin-bottom:10px">' +
+      '<span class="row" style="gap:8px">' + icon('bolt', 18) + ' <span>' + (shownBill ? 'Electricity bill' : 'Add electricity bill') + '</span></span>' +
+      '<span class="badge ' + (shownBill ? 'paid' : 'neutral') + '">' + (shownBill ? money(shownBill.amount) : 'Pending') + '</span></button>';
+  }
 
   h += '<div class="summary-strip">' +
     '<div class="ss"><div class="k">Due</div><div class="v t-num">' + money(s.totalDue) + '</div></div>' +
@@ -2019,7 +2224,8 @@ function renderPayments() {
       '<div class="pay-top">' + avatarHTML(r, 'sm') +
       '<button class="grow" style="text-align:left;min-height:44px" data-act="open-due" data-id="' + attr(p.id) + '">' +
       '<div class="pn truncate">' + esc(r.name) + '</div>' +
-      '<div class="pd">' + (room ? 'Room ' + esc(room.number) : 'No room') + ' \u00B7 ' + esc(propShort(r.propertyId)) + '</div></button>' +
+      '<div class="pd">' + (room ? 'Room ' + esc(room.number) : 'No room') + ' \u00B7 ' + esc(propShort(r.propertyId)) + '</div>' +
+      '<div class="tiny" style="margin-top:2px;color:' + (p.electricity == null ? '#B45309' : 'var(--muted)') + '">' + esc(splitLine(p)) + '</div></button>' +
       '<div class="row" style="gap:6px">' + (isOverdue(p) && st !== 'Paid' ? '<span class="badge overdue">Overdue</span>' : statusBadge(p)) + '</div>' +
       '</div>' +
       '<div class="pay-figs">' +
@@ -2056,9 +2262,13 @@ function reminderForResident(r) {
   var dueDate = overdue ? todayISO() : (thisMonth() + '-' + pad2(dueDay));
   var room = roomById(r.roomId);
   var bed = bedById(r.bedId);
+  var rentTotal = sum(dues, function (p) { return num(p.rent); });
+  var elecTotal = sum(dues, function (p) { return num(p.electricity || 0); });
+  var elecPending = dues.some(electricityPending);
   var text = fillTemplate({
     name: r.name, first: String(r.name || '').split(' ')[0],
-    balance: groupNum(total), rent: groupNum(dues[dues.length - 1].due),
+    balance: groupNum(total), rent: groupNum(rentTotal),
+    electricity: elecPending ? 'pending' : money(elecTotal), total: groupNum(total),
     month: monthLabel, date: fmtDate(dueDate),
     upi: db.settings.upi || 'ask the owner',
     property: propName(r.propertyId), room: room ? room.number : '', bed: bed ? bed.label : '',
@@ -2138,6 +2348,16 @@ function monthRangeTo(mk) {
   var out = [];
   for (var i = 1; i <= p[1]; i++) out.push(p[0] + '-' + pad2(i));
   return out;
+}
+function incomeSplit(mk, propId) {
+  var dues = paymentsForMonth(mk, propId);
+  var rentBilled = sum(dues, function (p) { return num(p.rent); });
+  var elecBilled = sum(dues, function (p) { return num(p.electricity || 0); });
+  var billed = rentBilled + elecBilled;
+  var got = sum(dues, paidOf);
+  if (billed <= 0) return { rent: 0, electricity: 0 };
+  var rentPart = Math.round(got * rentBilled / billed);
+  return { rent: rentPart, electricity: Math.max(0, got - rentPart) };
 }
 function ytdTotals(mk, propId) {
   var months = monthRangeTo(mk);
@@ -2231,6 +2451,7 @@ function renderReports() {
 
 function reportOverview(mk, propId, s) {
   var ytd = ytdTotals(mk, propId);
+  var split = incomeSplit(mk, propId);
   var series = [];
   var p = String(mk).split('-').map(Number);
   for (var i = 1; i <= 12; i++) {
@@ -2242,7 +2463,9 @@ function reportOverview(mk, propId, s) {
     '<div class="v t-num" style="color:' + (s.profit >= 0 ? '#fff' : '#FCA5A5') + '">' + money(s.profit) + '</div>' +
     '<div class="s">' + money(s.collected) + ' collected \u2212 ' + money(s.expenses) + ' spent</div>' +
     '<div class="report-grid">' +
-    '<div class="rgt"><div class="k">Income</div><div class="v t-num">' + money(s.collected) + '</div></div>' +
+    '<div class="rgt" style="grid-column:1/-1"><div class="k">Income</div><div class="v t-num">' + money(s.collected) + '</div>' +
+    '<div class="row-between" style="margin-top:6px"><span class="tiny" style="color:#C9D6FF">Rent</span><span class="tiny t-num" style="color:#fff;font-weight:750">' + money(split.rent) + '</span></div>' +
+    '<div class="row-between" style="margin-top:2px"><span class="tiny" style="color:#C9D6FF">Electricity</span><span class="tiny t-num" style="color:#fff;font-weight:750">' + money(split.electricity) + '</span></div></div>' +
     '<div class="rgt"><div class="k">Expenses</div><div class="v t-num">' + money(s.expenses) + '</div></div>' +
     '<div class="rgt"><div class="k">Pending rent</div><div class="v t-num" style="color:#FCD34D">' + money(s.pending) + '</div></div>' +
     '<div class="rgt"><div class="k">Collection</div><div class="v t-num">' + s.pct + '%</div></div>' +
@@ -2538,12 +2761,14 @@ function sheetShell(opts) {
     '</div>' + (opts.body || '') + '</div></div>';
 }
 function openSheet(name, params) {
+  ui.elecEdit = false;
   ui.sheet = { name: name, params: params || {} };
   renderSheet();
   document.body.classList.add('is-locked');
 }
 function closeSheet() {
   ui.sheet = null;
+  ui.elecEdit = false;
   $('#sheetLayer').innerHTML = '';
   if (pinState.mode === 'none') document.body.classList.remove('is-locked');
   // remove any transient errors / focus
@@ -2565,6 +2790,7 @@ function renderSheet() {
     else if (n === 'install') html = sheetInstall();
     else if (n === 'receipt') html = sheetReceipt();
     else if (n === 'changePin') html = sheetChangePin();
+    else if (n === 'elecBill') html = sheetElecBill(p);
   } catch (e) {
     console.error('Sheet failed', e);
     html = sheetShell({ title: 'Something went wrong', body: '<div class="sheet-body"><p class="muted">Please close this and try again.</p></div>' });
@@ -2722,7 +2948,8 @@ function applyRentFrom(resId, fromMonth, newRent) {
   db.payments.forEach(function (p) {
     if (p.residentId !== resId) return;
     if (String(p.month) < from) return;
-    p.due = rent;
+    p.rent = rent;
+    p.due = rent + (p.electricity == null ? 0 : num(p.electricity));
     syncPayment(p);
     touched++;
   });
@@ -2733,7 +2960,9 @@ function newDraft() {
   return {
     name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '',
     photo: '', propertyId: (ui.prop !== 'all' ? ui.prop : db.properties[0].id), roomId: '', bedId: '',
-    joiningDate: todayISO(), rent: '', proRate: true, depositAmount: '', depositReceived: false, notes: ''
+    joiningDate: todayISO(), rent: propertyRent(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
+    proRate: true, depositAmount: propertyAdvance(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
+    depositReceived: false, notes: ''
   };
 }
 function openResidentWizard(id, bedId) {
@@ -2758,7 +2987,11 @@ function openResidentWizard(id, bedId) {
         var room = roomById(bed.roomId);
         d.bedId = bed.id;
         d.roomId = bed.roomId;
-        if (room) { d.propertyId = room.propertyId; d.rent = room.rent; }
+        if (room) {
+          d.propertyId = room.propertyId;
+          d.rent = room.rent || propertyRent(room.propertyId);
+          d.depositAmount = propertyAdvance(room.propertyId);
+        }
       }
     }
     ui.wizard = { mode: 'add', id: null, step: 0, status: 'Active', data: d };
@@ -3039,13 +3272,35 @@ function sheetPayment(params) {
   var receipts = (p.receipts || []).slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
   var body = '<div class="sheet-body">' +
     '<div class="card tight" style="box-shadow:none;background:#F7F9FD;margin-bottom:14px">' +
-    '<div class="row-between"><div><div class="semi" style="font-size:15px">' + esc(fmtMonth(p.month)) + ' rent</div>' +
+    '<div class="row-between"><div><div class="semi" style="font-size:15px">' + esc(fmtMonth(p.month)) + ' dues</div>' +
     '<div class="small muted">' + (room ? 'Room ' + esc(room.number) : 'No room') + (bed ? ' \u00B7 ' + esc(bed.label) : '') + '</div></div>' +
     statusBadge(p) + '</div>' +
     '<div class="pay-figs" style="border-top:1px dashed #E2E8F0;margin-top:10px">' +
     '<div class="fig"><div class="fk">Due</div><div class="fv t-num">' + money(p.due) + '</div></div>' +
     '<div class="fig"><div class="fk">Paid</div><div class="fv t-num" style="color:var(--green)">' + money(paid) + '</div></div>' +
     '<div class="fig balance' + (bal === 0 ? ' zero' : '') + '" style="text-align:right"><div class="fk">Balance</div><div class="fv t-num">' + money(bal) + '</div></div>' +
+    '</div>' +
+    '<div style="border-top:1px dashed #E2E8F0;margin-top:8px;padding-top:2px">' +
+    '<div class="kv"><div class="k">Rent</div><div class="v t-num">' + money(num(p.rent)) + '</div></div>' +
+    '<div class="kv"><div class="k">Electricity</div><div class="v t-num">' +
+    (p.electricity == null
+      ? '<span class="badge partial">Pending</span>'
+      : money(num(p.electricity)) + (p.electricityManual ? ' <span class="tiny muted">edited</span>' : '')) +
+    (!ui.elecEdit && r && propElectricity(r.propertyId).mode === 'split'
+      ? ' <button class="tiny" style="color:var(--navy);font-weight:700;min-height:32px;padding:0 4px" data-act="edit-electricity" data-id="' + attr(p.id) + '">Edit</button>'
+      : '') +
+    '</div></div>' +
+    (ui.elecEdit
+      ? '<form data-form="electricity" novalidate style="margin:8px 0 4px"><input type="hidden" name="dueId" value="' + attr(p.id) + '">' +
+        '<div class="field"><label>Electricity for this resident</label>' +
+        '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="amount" inputmode="numeric" value="' + (p.electricity == null ? '' : num(p.electricity)) + '"></div>' +
+        '<div class="field-error"></div>' +
+        '<div class="row" style="gap:8px;margin-top:8px">' +
+        '<button type="submit" class="mini-btn navy" style="flex:1;min-height:40px">Save amount</button>' +
+        '<button type="button" class="mini-btn" style="flex:1;min-height:40px" data-act="cancel-electricity">Cancel</button></div>' +
+        (p.electricityManual ? '<div style="margin-top:8px"><button type="button" class="tiny" style="color:var(--navy);font-weight:700;min-height:36px" data-act="reset-electricity" data-id="' + attr(p.id) + '">Use the automatic share</button></div>' : '') +
+        '</div></form>'
+      : '') +
     '</div></div>' +
     (receipts.length
       ? '<div class="field-label">Receipts</div><div class="card tight" style="box-shadow:none;border:1px solid var(--line);margin-bottom:14px">' + receipts.map(function (rc) { return receiptRow(rc, p.id); }).join('') + '</div>'
@@ -3068,7 +3323,7 @@ function sheetPayment(params) {
         '</form>'
       : '<div class="card tight" style="background:var(--green-bg);box-shadow:none;margin-bottom:10px"><div class="row" style="gap:8px;color:#047857">' + icon('checkCircle', 20) +
         '<div class="semi" style="font-size:14px">This month is fully paid.</div></div></div>') +
-    (r ? waButton(r, fillTemplate({ name: r.name, first: String(r.name).split(' ')[0], balance: groupNum(bal), rent: groupNum(p.due), month: fmtMonth(p.month), date: fmtDate(p.month + '-' + pad2(num(db.settings.dueDay || 5))), upi: db.settings.upi || '', property: propName(r.propertyId), room: room ? room.number : '', bed: bed ? bed.label : '', owner: db.settings.ownerName || '' }), { cls: 'btn wa block', iconSize: 19, label: 'Send WhatsApp to ' + String(r.name).split(' ')[0], style: 'margin-top:4px' }) : '') +
+    (r ? waButton(r, fillTemplate({ name: r.name, first: String(r.name).split(' ')[0], balance: groupNum(bal), rent: groupNum(num(p.rent)), electricity: p.electricity == null ? 'pending' : money(num(p.electricity)), total: groupNum(p.due), month: fmtMonth(p.month), date: fmtDate(p.month + '-' + pad2(num(db.settings.dueDay || 5))), upi: db.settings.upi || '', property: propName(r.propertyId), room: room ? room.number : '', bed: bed ? bed.label : '', owner: db.settings.ownerName || '' }), { cls: 'btn wa block', iconSize: 19, label: 'Send WhatsApp to ' + String(r.name).split(' ')[0], style: 'margin-top:4px' }) : '') +
     '<div style="height:10px"></div></div>';
   var foot = bal > 0
     ? '<div class="sheet-foot"><button class="btn block" data-act="save-payment">' + icon('check', 19) + ' Save payment</button></div>'
@@ -3094,7 +3349,10 @@ function savePaymentForm(form) {
   var note = val(form, 'note');
   addReceipt(p, amount, mode, date, note);
   render();
-  ui.receipt = { residentId: p.residentId, amount: amount, month: p.month, balance: balanceOf(p), date: date, mode: mode };
+  ui.receipt = {
+    residentId: p.residentId, amount: amount, month: p.month, balance: balanceOf(p),
+    date: date, mode: mode, dueId: p.id, total: p.due
+  };
   openSheet('receipt');
 }
 
@@ -3193,6 +3451,129 @@ function saveVacateForm(form) {
   toast(name + ' vacated \u00B7 bed is free', 'good');
 }
 
+
+/* ===========================================================================
+   22b. Electricity bill (one per hostel per month)
+   =========================================================================== */
+function splitHostels() {
+  return db.properties.filter(function (prop) { return propElectricity(prop.id).mode === 'split'; });
+}
+function sheetElecBill(params) {
+  params = params || {};
+  var month = params.month || ui.payMonth;
+  var hostels = splitHostels();
+  if (!hostels.length) {
+    return sheetShell({
+      title: 'Electricity bill', sub: 'Both hostels are on fixed electricity',
+      body: '<div class="sheet-body"><p class="muted">Change a hostel to \u201CSplit hostel bill\u201D in Settings to add a monthly bill.</p></div>' +
+        '<div class="sheet-foot"><button class="btn ghost block" data-act="close-sheet">Done</button></div>'
+    });
+  }
+  var propId = params.propId;
+  if (!propId || !hostels.some(function (h) { return h.id === propId; })) {
+    propId = (ui.prop !== 'all' && hostels.some(function (h) { return h.id === ui.prop; })) ? ui.prop : hostels[0].id;
+  }
+  var bill = electricityBillFor(propId, month);
+  var count = residentsActiveInMonth(propId, month).length;
+  var share = bill && count ? Math.round(num(bill.amount) / count) : 0;
+  var body = '<form data-form="elecBill" novalidate><input type="hidden" name="month" value="' + attr(month) + '">' +
+    '<div class="sheet-body">' +
+    '<div class="card tight" style="background:#F7F9FD;box-shadow:none;margin-bottom:12px">' +
+    '<div class="row-between"><span class="semi">' + esc(fmtMonth(month)) + '</span><span class="badge navy">' + count + ' resident' + (count === 1 ? '' : 's') + '</span></div>' +
+    '<div class="small muted" style="margin-top:4px">One bill for this hostel. It is split equally between everyone who stayed here that month.</div></div>' +
+    (hostels.length > 1
+      ? '<div class="field"><label>Hostel</label><select class="select" name="propertyId" data-act-change="elec-prop">' +
+        hostels.map(function (h) {
+          return '<option value="' + attr(h.id) + '"' + (h.id === propId ? ' selected' : '') + '>' + esc(h.name) + '</option>';
+        }).join('') + '</select></div>'
+      : '<input type="hidden" name="propertyId" value="' + attr(propId) + '">') +
+    '<div class="field"><label>Bill amount</label>' +
+    '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="amount" inputmode="numeric" value="' + (bill ? num(bill.amount) : '') + '"></div>' +
+    '<div class="field-error"></div>' +
+    '<div class="field-hint">' + (share
+      ? 'About ' + money(share) + ' each. You can edit one person\u2019s share later.'
+      : 'Each resident gets an equal share, rounded to the rupee.') + '</div></div>' +
+    '<div style="height:4px"></div></div>' +
+    '<div class="sheet-foot"><button class="btn block" type="submit">' + (bill ? 'Save bill' : 'Split the bill') + '</button>' +
+    (bill ? '<button type="button" class="btn ghost block" style="margin-top:8px" data-act="delete-elec-bill" data-id="' + attr(bill.id) + '">Remove this bill</button>' : '') +
+    '</div></form>';
+  return sheetShell({
+    title: bill ? 'Electricity bill' : 'Add electricity bill',
+    sub: fmtMonth(month) + ' \u00B7 ' + esc(propName(propId)),
+    body: body
+  });
+}
+function saveElecBillForm(form) {
+  clearErrors(form);
+  var month = val(form, 'month');
+  var propId = val(form, 'propertyId');
+  var field = form.elements['amount'];
+  var amount = parseAmount(field ? field.value : '');
+  if (!(amount > 0)) {
+    setError(fieldOf(field), 'Enter the bill amount');
+    return;
+  }
+  var bill = electricityBillFor(propId, month);
+  if (bill) bill.amount = amount;
+  else {
+    db.electricityBills.push({
+      id: uid('bill'), propertyId: propId, month: month, amount: amount,
+      createdAt: new Date().toISOString()
+    });
+  }
+  syncElectricity();
+  save();
+  var count = residentsActiveInMonth(propId, month).length;
+  closeSheet();
+  render();
+  toast('Bill split across ' + count + ' resident' + (count === 1 ? '' : 's'), 'good');
+}
+function removeElectricityBill(id) {
+  var bill = (db.electricityBills || []).filter(function (b) { return b.id === id; })[0];
+  if (!bill) return;
+  db.electricityBills = db.electricityBills.filter(function (b) { return b.id !== id; });
+  db.payments.forEach(function (p) {
+    if (p.month !== bill.month || p.electricityManual) return;
+    var r = residentById(p.residentId);
+    if (!r || r.propertyId !== bill.propertyId) return;
+    p.electricity = null;
+  });
+  syncElectricity();
+  save();
+  closeSheet();
+  render();
+  toast('Bill removed', 'good');
+}
+function saveElectricityForm(form) {
+  clearErrors(form);
+  var p = db.payments.filter(function (x) { return x.id === val(form, 'dueId'); })[0];
+  if (!p) return;
+  var field = form.elements['amount'];
+  var amount = parseAmount(field ? field.value : '');
+  if (field && String(field.value).trim() === '') {
+    p.electricityManual = false;
+    syncElectricity();
+    save();
+    ui.elecEdit = false;
+    renderSheet();
+    render();
+    toast('Using the automatic share', 'good');
+    return;
+  }
+  if (!(amount >= 0)) {
+    setError(fieldOf(field), 'Enter a number');
+    return;
+  }
+  p.electricity = amount;
+  p.electricityManual = true;
+  syncElectricity();
+  save();
+  ui.elecEdit = false;
+  renderSheet();
+  render();
+  toast('Electricity updated', 'good');
+}
+
 /* ===========================================================================
    22. Payment picker
    =========================================================================== */
@@ -3246,7 +3627,7 @@ function renderSettings() {
     '</div>';
 
   h += '<form data-form="settings" style="margin-top:14px">' +
-    '<div class="set-label">Hostel</div>' +
+    '<div class="set-label">General</div>' +
     '<div class="card tight" style="padding:16px">' +
     '<div class="field"><label>Owner name</label><input class="input" name="ownerName" value="' + attr(s.ownerName) + '" placeholder="Your name" autocomplete="name"></div>' +
     '<div class="field"><label>Rent due day of month</label><select class="select" name="dueDay" id="dueDay">' +
@@ -3261,7 +3642,7 @@ function renderSettings() {
     '<div class="field"><label>WhatsApp reminder message</label>' +
     '<textarea class="textarea" name="waTemplate" id="waTemplate" rows="4" style="min-height:104px">' + esc(s.waTemplate) + '</textarea>' +
     '<div class="wrap" style="margin-top:8px">' +
-    ['{name}', '{balance}', '{month}', '{date}', '{upi}', '{property}', '{room}', '{owner}'].map(function (t) {
+    ['{name}', '{balance}', '{rent}', '{electricity}', '{total}', '{month}', '{date}', '{upi}', '{property}', '{room}', '{owner}'].map(function (t) {
       return '<button type="button" class="badge navy" style="border:0;min-height:34px;font-size:12px" data-act="insert-token" data-token="' + attr(t) + '">' + esc(t) + '</button>';
     }).join('') +
     '</div>' +
@@ -3271,6 +3652,32 @@ function renderSettings() {
     '</div>' +
     '<button class="btn block" type="submit">Save settings</button>' +
     '</div>' +
+    '</form>';
+
+
+  h += '<div class="set-label">Hostel settings</div>' +
+    '<form data-form="hostelSettings">' +
+    db.properties.map(function (prop) {
+      var cfg = propElectricity(prop.id);
+      var splitBill = electricityBillFor(prop.id, thisMonth());
+      return '<div class="card tight" style="padding:16px;margin-bottom:12px">' +
+        '<div class="row-between" style="margin-bottom:10px"><div class="semi" style="font-size:15px">' + esc(prop.name) + '</div>' +
+        '<span class="badge ' + (cfg.mode === 'split' ? 'navy' : 'neutral') + '">' + (cfg.mode === 'split' ? 'Split bill' : 'Fixed') + '</span></div>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Monthly rent / bed</label><div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="rent_' + attr(prop.id) + '" inputmode="numeric" value="' + num(prop.rent) + '"></div></div>' +
+        '<div class="field"><label>Advance</label><div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="advance_' + attr(prop.id) + '" inputmode="numeric" value="' + num(prop.advance) + '"></div></div>' +
+        '</div>' +
+        '<div class="field"><label>Electricity</label><select class="select" name="elecMode_' + attr(prop.id) + '">' +
+        '<option value="fixed"' + (cfg.mode === 'fixed' ? ' selected' : '') + '>Fixed per person</option>' +
+        '<option value="split"' + (cfg.mode === 'split' ? ' selected' : '') + '>Split hostel bill</option>' +
+        '</select></div>' +
+        '<div class="field"><label>Amount per person / month</label><div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="elecAmount_' + attr(prop.id) + '" inputmode="numeric" value="' + num(cfg.amount) + '"><div class="field-error"></div></div>' +
+        '<div class="field-hint">' + (cfg.mode === 'split'
+          ? 'Used only if you switch to fixed. One bill for the hostel each month is split equally \u2014 add it from Payments.' + (splitBill ? ' This month: ' + money(splitBill.amount) + '.' : '')
+          : 'Added to every monthly due for this hostel.') + '</div></div>' +
+        '</div>';
+    }).join('') +
+    '<button class="btn block" type="submit">Save hostel settings</button>' +
     '</form>';
 
   h += '<div class="set-label">Data safety</div>' +
@@ -3313,9 +3720,33 @@ function renderSettings() {
   h += '</div>';
   return h;
 }
+function saveHostelSettings(form) {
+  clearErrors(form);
+  var ok = true;
+  db.properties.forEach(function (prop) {
+    if (!ok) return;
+    var rent = parseAmount(val(form, 'rent_' + prop.id));
+    var advance = parseAmount(val(form, 'advance_' + prop.id));
+    var mode = val(form, 'elecMode_' + prop.id) === 'split' ? 'split' : 'fixed';
+    var amountEl = form.elements['elecAmount_' + prop.id];
+    var amount = amountEl ? parseAmount(amountEl.value) : 0;
+    if (!amountEl || String(amountEl.value).trim() === '') {
+      ok = setError(fieldOf(amountEl), 'Enter the electricity amount (0 if none)');
+      return;
+    }
+    prop.rent = rent;
+    prop.advance = advance;
+    prop.electricity = { mode: mode, amount: amount };
+  });
+  if (!ok) return;
+  syncElectricity();
+  save();
+  render();
+  toast('Hostel settings saved', 'good');
+}
 function previewTemplate(tpl, upi) {
   return fillTemplateWith(tpl, {
-    name: 'Anjali Ramesh', first: 'Anjali', balance: '5,000', rent: '5,500',
+    name: 'Anjali Ramesh', first: 'Anjali', balance: '5,750', rent: '5,500', electricity: '\u20B9250', total: '5,750',
     month: fmtMonth(thisMonth()), date: fmtDate(thisMonth() + '-' + pad2(clamp(num(db.settings.dueDay || 5), 1, 28))),
     upi: upi || 'ask the owner', property: propName(db.properties[0].id), room: '101', bed: 'Bed 1',
     owner: db.settings.ownerName || 'Hostel Manager'
@@ -3827,9 +4258,14 @@ async function saveChangePinForm(form) {
 function receiptMessage(info) {
   var r = residentById(info.residentId);
   var owner = db.settings.ownerName || (r ? propName(r.propertyId) : 'Hostel Manager');
-  var tail = info.balance > 0 ? 'Balance left: ' + money(info.balance) + '.' : 'Rent fully paid.';
+  var p = info.dueId ? db.payments.filter(function (x) { return x.id === info.dueId; })[0] : null;
+  var tail = info.balance > 0 ? 'Balance left: ' + money(info.balance) + '.' : 'All dues cleared.';
+  var split = '';
+  if (p) {
+    split = ' (Rent ' + money(num(p.rent)) + (p.electricity == null ? ', electricity pending' : ' + Electricity ' + money(num(p.electricity))) + ' = ' + money(p.due) + ')';
+  }
   return 'Hello ' + (r ? r.name : '') + ', we received ' + money(info.amount) + ' for ' + fmtMonth(info.month) +
-    ' rent on ' + fmtDate(info.date) + '. ' + tail + ' Thank you \u2014 ' + owner + '.';
+    ' dues' + split + ' on ' + fmtDate(info.date) + '. ' + tail + ' Thank you \u2014 ' + owner + '.';
 }
 function sheetReceipt() {
   var info = ui.receipt;
@@ -3837,15 +4273,19 @@ function sheetReceipt() {
     return sheetShell({ title: 'Payment recorded', body: '<div class="sheet-body"><p class="muted">Payment saved.</p></div>' });
   }
   var r = residentById(info.residentId);
+  var rcPay = info.dueId ? db.payments.filter(function (x) { return x.id === info.dueId; })[0] : null;
   var text = receiptMessage(info);
   var body = '<div class="sheet-body">' +
     '<div class="receipt-hero">' + icon('checkCircle', 28) +
     '<div class="ra">' + money(info.amount) + '</div>' +
-    '<div class="rs">' + esc(fmtMonth(info.month)) + ' rent \u00B7 ' + esc(fmtDate(info.date)) + '</div></div>' +
+    '<div class="rs">' + esc(fmtMonth(info.month)) + ' dues \u00B7 ' + esc(fmtDate(info.date)) + '</div></div>' +
     '<div class="card tight" style="box-shadow:none;border:1px solid var(--line)">' +
     '<div class="kv"><div class="k">Resident</div><div class="v">' + esc(r ? r.name : '\u2014') + '</div></div>' +
     '<div class="kv"><div class="k">Received</div><div class="v t-num">' + money(info.amount) + ' \u00B7 ' + esc(info.mode) + '</div></div>' +
     '<div class="kv"><div class="k">Month</div><div class="v">' + esc(fmtMonth(info.month)) + '</div></div>' +
+    (rcPay ? '<div class="kv"><div class="k">Rent</div><div class="v t-num">' + money(num(rcPay.rent)) + '</div></div>' +
+      '<div class="kv"><div class="k">Electricity</div><div class="v t-num">' + (rcPay.electricity == null ? 'Pending' : money(num(rcPay.electricity))) + '</div></div>' +
+      '<div class="kv"><div class="k">Month total</div><div class="v t-num">' + money(rcPay.due) + '</div></div>' : '') +
     '<div class="kv"><div class="k">Balance left</div><div class="v t-num" style="color:' + (info.balance > 0 ? 'var(--red)' : 'var(--green)') + '">' + (info.balance > 0 ? money(info.balance) : 'Fully paid') + '</div></div>' +
     '</div>' +
     (r ? '<div style="margin-top:14px">' + waButton(r, text, { cls: 'btn wa block', iconSize: 19, label: 'Send receipt on WhatsApp' }) + '</div>' : '') +
@@ -4105,6 +4545,61 @@ document.addEventListener('click', function (e) {
         if (f) savePaymentForm(f);
         break;
       }
+      case 'quick-setup': {
+        var scope = (ui.prop && ui.prop !== 'all') ? ui.prop : 'all';
+        var made = quickSetupSummary(scope);
+        var msg = [];
+        if (scope !== 'prop_ladies') msg.push(esc(propName('prop_mens')) + ': 4 rooms of 8 beds on Ground, 1st, 2nd and 3rd floor \u2014 32 beds at \u20B94,000 each.');
+        if (scope !== 'prop_mens') msg.push(esc(propName('prop_ladies')) + ': 5 rooms on the 1st floor \u2014 10 beds at \u20B96,500 each.');
+        askConfirm({
+          title: 'Set up ' + made.rooms + ' rooms?',
+          icon: 'bed',
+          danger: false,
+          message: msg.join('<br>') + '<br><br>That is ' + made.beds + ' beds in all. You can edit every room afterwards.',
+          confirmLabel: 'Yes, add these rooms',
+          cancelLabel: 'Not now',
+          onYes: function () { closeConfirm(); quickSetupRooms(scope); }
+        });
+        break;
+      }
+      case 'elec-bill':
+        openSheet('elecBill', { month: el.getAttribute('data-month') || ui.payMonth });
+        break;
+      case 'edit-electricity':
+        ui.elecEdit = true;
+        renderSheet();
+        break;
+      case 'cancel-electricity':
+        ui.elecEdit = false;
+        renderSheet();
+        break;
+      case 'reset-electricity': {
+        var ePay = db.payments.filter(function (x) { return x.id === id; })[0];
+        if (ePay) {
+          ePay.electricityManual = false;
+          syncElectricity();
+          save();
+          ui.elecEdit = false;
+          renderSheet();
+          render();
+          toast('Using the automatic share', 'good');
+        }
+        break;
+      }
+      case 'delete-elec-bill': {
+        var eBill = (db.electricityBills || []).filter(function (b) { return b.id === id; })[0];
+        if (!eBill) break;
+        askConfirm({
+          title: 'Remove this bill?',
+          message: money(eBill.amount) + ' for ' + esc(fmtMonth(eBill.month)) + '. The electricity lines will go back to pending.',
+          confirmLabel: 'Remove bill',
+          onYes: function () {
+            closeConfirm();
+            removeElectricityBill(id);
+          }
+        });
+        break;
+      }
       case 'ask-vacate':
         openSheet('vacate', { id: id });
         break;
@@ -4262,6 +4757,9 @@ document.addEventListener('submit', function (e) {
     else if (kind === 'expense') saveExpenseForm(form);
     else if (kind === 'vacate') saveVacateForm(form);
     else if (kind === 'settings') saveSettingsForm(form);
+    else if (kind === 'hostelSettings') saveHostelSettings(form);
+    else if (kind === 'elecBill') saveElecBillForm(form);
+    else if (kind === 'electricity') saveElectricityForm(form);
     else if (kind === 'changePin') saveChangePinForm(form);
   } catch (err) {
     console.error('Form save failed', err);
@@ -4283,6 +4781,10 @@ document.addEventListener('input', function (e) {
 });
 
 document.addEventListener('change', function (e) {
+  if (e.target && e.target.getAttribute && e.target.getAttribute('data-act-change') === 'elec-prop') {
+    openSheet('elecBill', { month: ui.payMonth, propId: e.target.value });
+    return;
+  }
   var el = e.target;
   if (!el || !el.getAttribute) return;
   var change = el.getAttribute('data-act-change');
@@ -4301,6 +4803,8 @@ document.addEventListener('change', function (e) {
     ui.wizard.data.propertyId = el.value;
     ui.wizard.data.roomId = '';
     ui.wizard.data.bedId = '';
+    ui.wizard.data.rent = propertyRent(el.value);
+    ui.wizard.data.depositAmount = propertyAdvance(el.value);
     renderSheet();
   } else if (change === 'wiz-room') {
     captureWizard();
