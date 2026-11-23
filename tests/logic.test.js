@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
+const { seedFixture } = require('./fixture');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 let failures = 0;
@@ -43,16 +44,24 @@ function helpers(w) {
   const settle = (ms) => new Promise((r) => setTimeout(r, ms || 30));
   return { w, d, q, qa, click, act, tap, submit, db, settle };
 }
+async function pinEntry(h, digits) {
+  for (const ch of String(digits)) h.click(h.q('.lock-key[data-digit="' + ch + '"]'));
+  await h.settle(240);
+}
+async function unlock(h) {
+  await h.settle(150);
+  if (!h.q('.lock-screen')) return;
+  await pinEntry(h, '1234');
+  await pinEntry(h, '1234');
+  await h.settle(150);
+}
 
 (async function () {
   // ---------------------------------------------------------------- setup
-  let dom = makeDom(null);
-  let h = helpers(dom.window);
-  await h.settle();
-  h.act('load-demo');
-  await h.settle(80);
+  let h = helpers(makeDom(seedFixture()).window);
+  await unlock(h);
   let base = h.db();
-  const demoBackup = JSON.parse(JSON.stringify(base));
+  const fixtureBackup = JSON.parse(JSON.stringify(base));
 
   // ---------------------------------------------------------------- wizard
   h.act('tab', '[data-tab="residents"]');
@@ -156,16 +165,15 @@ function helpers(w) {
   await h.settle();
 
   // ---------------------------------------------------------------- rollover
-  const stale = JSON.parse(JSON.stringify(demoBackup));
+  const stale = JSON.parse(JSON.stringify(fixtureBackup));
   const prev2 = mkAdd(thisMk(), -2);
   stale.meta.lastRunMonth = prev2;
   // remove any dues for last month + this month so the gap fill is visible
   const keep = stale.residents.filter((r) => r.status === 'Active')[0];
   stale.payments = stale.payments.filter((p) => !(p.residentId === keep.id && p.month >= mkAdd(thisMk(), -1)));
   const beforeCount = stale.payments.length;
-  const dom2 = makeDom(stale);
-  const h2 = helpers(dom2.window);
-  await h2.settle(80);
+  const h2 = helpers(makeDom(stale).window);
+  await unlock(h2);
   const data2 = h2.db();
   const newDues = data2.payments.filter((p) => p.month >= mkAdd(thisMk(), -1));
   ok(newDues.length > 0, 'gap months filled on open (' + newDues.length + ' new dues)');
@@ -175,20 +183,19 @@ function helpers(w) {
   ok(data2.meta.lastRunMonth === thisMk(), 'last run month updated');
 
   // ---------------------------------------------------------------- overdue
-  const od = JSON.parse(JSON.stringify(demoBackup));
+  const od = JSON.parse(JSON.stringify(fixtureBackup));
   od.settings.dueDay = 1; // everything unpaid is overdue now
-  const dom3 = makeDom(od);
-  const h3 = helpers(dom3.window);
-  await h3.settle(80);
+  const h3 = helpers(makeDom(od).window);
+  await unlock(h3);
   ok(/Overdue/.test(text(h3.q('.screen'))) || /Overdue/.test(text(h3.q('.hero'))), 'overdue label appears after due day');
   h3.act('tab', '[data-tab="payments"]');
   await h3.settle();
   ok(/Overdue/.test(text(h3.q('.screen'))), 'payments screen marks overdue dues');
 
   // ---------------------------------------------------------------- restore
-  const restorable = JSON.parse(JSON.stringify(demoBackup));
+  const restorable = JSON.parse(JSON.stringify(fixtureBackup));
   restorable.residents[0].name = 'Restored Person';
-  restorable.residents = restorable.residents.slice(0, 5);
+  restorable.residents = restorable.residents.slice(0, 2);
   restorable.rooms = restorable.rooms.slice(0, 2);
   restorable.payments = restorable.payments.filter((p) => restorable.residents.some((r) => r.id === p.residentId));
   restorable.beds = restorable.beds.filter((b) => restorable.rooms.some((r) => r.id === b.roomId));
@@ -196,11 +203,8 @@ function helpers(w) {
     if (!restorable.beds.some((b) => b.id === r.bedId)) { r.bedId = ''; r.roomId = ''; }
   });
 
-  const dom4 = makeDom(null);
-  const h4 = helpers(dom4.window);
-  await h4.settle();
-  h4.act('load-demo');
-  await h4.settle(60);
+  const h4 = helpers(makeDom(seedFixture()).window);
+  await unlock(h4);
   h4.act('settings');
   await h4.settle();
   const file = new h4.w.File([JSON.stringify({ app: 'Hostel Manager', data: restorable })], 'backup.json', { type: 'application/json' });
@@ -209,19 +213,18 @@ function helpers(w) {
   input.dispatchEvent(new h4.w.Event('change', { bubbles: true }));
   await h4.settle(200);
   ok(!!h4.q('#confirmLayer .sheet'), 'restore asks for confirmation');
-  ok(/5 residents/.test(text(h4.q('#confirmLayer'))), 'restore summary shows counts');
+  ok(/2 residents/.test(text(h4.q('#confirmLayer'))), 'restore summary shows counts');
   h4.act('confirm-yes');
   await h4.settle(150);
   const restored = h4.db();
-  ok(restored.residents.length === 5, 'backup restored resident count');
+  ok(restored.residents.length === 2, 'backup restored resident count');
   ok(restored.residents.some((r) => r.name === 'Restored Person'), 'restored content matches backup');
   ok(restored.rooms.length === 2, 'restored room count');
   ok(!!h4.q('.hero') && !!h4.q('.occ-grid'), 'restored data renders home dashboard');
 
   // ---------------------------------------------------------------- empty-state validation
-  const dom5 = makeDom(null);
-  const h5 = helpers(dom5.window);
-  await h5.settle();
+  const h5 = helpers(makeDom(null).window);
+  await unlock(h5);
   h5.act('add-room');
   await h5.settle();
   const rf = h5.q('#sheetLayer form[data-form="room"]');

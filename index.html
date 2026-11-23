@@ -972,7 +972,6 @@ function blankDB() {
       lastRunMonth: thisMonth(),
       lastBackup: null,
       createdAt: new Date().toISOString(),
-      demo: false,
       firstMonthMode: 'prorate'
     }
   };
@@ -1599,7 +1598,6 @@ function renderHome() {
       '</div>' +
       '<div class="btn-row" style="margin-top:14px">' +
       '<button class="btn" data-act="add-room">Add a room</button>' +
-      '<button class="btn ghost" data-act="load-demo">Try demo</button>' +
       '</div></div></div>';
   }
 
@@ -3285,33 +3283,22 @@ function renderSettings() {
     '<span class="grow"><span class="st">Restore data</span><span class="ss">Upload a backup file</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<div class="set-row" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('building', 18) + '</span>' +
     '<span class="grow"><span class="st">On this phone</span><span class="ss">' + db.residents.length + ' residents \u00B7 ' + db.rooms.length + ' rooms \u00B7 ' + storageKB() + ' KB used</span></span></div>' +
-    '<button class="set-row" data-act="load-demo"><span class="si">' + icon('sparkle', 18) + '</span>' +
-    '<span class="grow"><span class="st">Load demo data</span><span class="ss">Try the app with sample residents</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<button class="set-row danger" data-act="clear-all"><span class="si">' + icon('trash', 18) + '</span>' +
-    '<span class="grow"><span class="st">Clear all data</span><span class="ss">Start fresh on this phone</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
+    '<span class="grow"><span class="st">Erase everything</span><span class="ss">Delete all residents, rooms and payments</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '</div>' +
     '<input type="file" id="restoreFile" accept="application/json,.json" style="display:none">';
 
   h += '<div class="set-label">Lock and display</div>' +
     '<div class="set-group">' +
-    (function () {
-      var hasPin = !!readPinRecord();
-      if (!hasPin) {
-        return '<button class="set-row" data-act="set-pin" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('lock', 18) + '</span>' +
-          '<span class="grow"><span class="st">Set a PIN</span><span class="ss">Ask for 4 digits when the app opens</span></span><span class="badge navy">Off</span></button>';
-      }
-      return '<div class="set-row" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('lock', 18) + '</span>' +
-        '<span class="grow"><span class="st">PIN lock</span><span class="ss">Asked when the app opens or after 2 minutes away</span></span><span class="badge paid">On</span></div>' +
-        '<button class="set-row" data-act="change-pin"><span class="si">' + icon('key', 18) + '</span>' +
-        '<span class="grow"><span class="st">Change PIN</span><span class="ss">Use a new 4-digit code</span></span>' + icon('chevronRight', 18, 'chev') + '</button>';
-    })() +
+    '<div class="set-row" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('lock', 18) + '</span>' +
+    '<span class="grow"><span class="st">PIN lock</span><span class="ss">Asked when the app opens or after 2 minutes away</span></span><span class="badge paid">On</span></div>' +
+    '<button class="set-row" data-act="change-pin"><span class="si">' + icon('key', 18) + '</span>' +
+    '<span class="grow"><span class="st">Change PIN</span><span class="ss">Use a new 4-digit code</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<button class="set-row" data-act="toggle-large-text" aria-pressed="' + (s.largeText ? 'true' : 'false') + '"><span class="si" style="font-weight:800;font-size:15px;letter-spacing:-.5px">Aa</span>' +
     '<span class="grow"><span class="st">Large text</span><span class="ss">About 15% bigger text everywhere</span></span>' +
     '<span class="switch' + (s.largeText ? ' on' : '') + '"><i></i></span></button>' +
     '<div class="tiny muted" style="padding:11px 16px 14px;line-height:1.55">' +
-    (readPinRecord()
-      ? 'Forgot your PIN? It cannot be shown. The only way to reset it is to restore a backup file.'
-      : 'A PIN keeps your residents\u2019 details private if someone borrows your phone. It stays on this phone only.') + '</div>' +
+    'Forgot your PIN? It cannot be shown. The only way to reset it is to restore a backup file.' + '</div>' +
     '</div>' +
 
     '<div class="set-label">App</div>' +
@@ -3476,278 +3463,35 @@ function handleRestoreFile(file) {
   }
 }
 
-/* ===========================================================================
-   25. DEMO DATA
-   =========================================================================== */
-function mulberry32(a) {
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    var t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-var LADIES_NAMES = ['Anjali Ramesh', 'Kavya Balaji', 'Priya Selvam', 'Deepika Kumar', 'Swetha Rajan', 'Nandhini Murugan', 'Harini Venkat', 'Lakshmi Narayanan', 'Reshma Ibrahim', 'Soundarya Gopal', 'Meena Chandran', 'Varsha Prakash', 'Janani Suresh', 'Aishwarya Raman', 'Keerthana Mani', 'Bhavana Reddy', 'Divya Bharathi', 'Sangeetha Devi', 'Ramya Krishnan', 'Nivetha Senthil', 'Abinaya Raj', 'Monica David', 'Sowmya Iyer', 'Preethi Anand'];
-var MENS_NAMES = ['Arun Kumar', 'Karthik Velu', 'Sathish Ravi', 'Vignesh Anand', 'Mohan Raj', 'Dinesh Sekar', 'Praveen Natarajan', 'Barath Kumar', 'Ramesh Babu', 'Ajay Prasad', 'Sanjay Mohan', 'Hariharan Ganesh', 'Naveen Chandar', 'Akash Deepak', 'Jeevan Thomas', 'Yuvaraj Siva', 'Gokul Nath', 'Sudharsan Bala'];
-var PLACES = ['Anna University', 'IIT Madras', 'SRM Institute', 'VIT Chennai', 'Madras Medical College', 'Ethiraj College', 'Loyola College', 'Stella Maris College', 'TCS Siruseri', 'Infosys Sholinganallur', 'Zoho Estancia', 'Freshworks', 'Cognizant', 'Accenture'];
-var GUARDIANS = ['Ramesh Kumar', 'Suresh Babu', 'Mohan Raj', 'Selvam M', 'Rajan K', 'Murugan S', 'Venkat R', 'Gopal N', 'Chandran P', 'Prakash V', 'Ibrahim S', 'David J', 'Anand T', 'Balaji R'];
-
-function demoPhone(rnd) {
-  var s = '9';
-  for (var i = 0; i < 9; i++) s += Math.floor(rnd() * 10);
-  return s;
-}
-function demoAadhaar(rnd) {
-  var parts = [];
-  for (var i = 0; i < 3; i++) {
-    var p = '';
-    for (var j = 0; j < 4; j++) p += Math.floor(rnd() * 10);
-    parts.push(p);
-  }
-  return parts.join(' ');
-}
-function demoJoining(rnd, recent) {
-  var now = new Date();
-  if (recent) {
-    var maxDay = Math.max(1, now.getDate());
-    var day = Math.max(1, Math.min(maxDay, Math.floor(rnd() * maxDay) + 1));
-    return thisMonth() + '-' + pad2(day);
-  }
-  var monthsAgo = 1 + Math.floor(rnd() * 7);
-  var mk = addMonths(thisMonth(), -monthsAgo);
-  var day2 = 1 + Math.floor(rnd() * 20);
-  return mk + '-' + pad2(day2);
-}
-
-function buildDemoDB() {
-  var d = blankDB();
-  var rnd = mulberry32(20261122);
-  var ladies = d.properties[0].id, mens = d.properties[1].id;
-  d.meta.demo = true;
-  d.meta.lastBackup = (function () {
-    var dt = new Date(); dt.setDate(dt.getDate() - 3); return toISO(dt);
-  })();
-  d.settings.ownerName = 'Sathvika Reddy';
-  d.settings.upi = 'sathvika@okhdfcbank';
-  d.settings.dueDay = 5;
-
-  var plan = [
-    [ladies, 0, '101', 4, 5200, 'AC'],
-    [ladies, 0, '102', 3, 4800, 'Non-AC'],
-    [ladies, 0, '103', 2, 6500, 'AC'],
-    [ladies, 1, '201', 4, 5000, 'Non-AC'],
-    [ladies, 1, '202', 3, 6000, 'AC'],
-    [ladies, 1, '203', 2, 5800, 'Non-AC'],
-    [ladies, 2, '301', 4, 5500, 'AC'],
-    [ladies, 2, '302', 3, 4900, 'Non-AC'],
-    [mens, 0, '101', 4, 5000, 'Non-AC'],
-    [mens, 0, '102', 3, 6000, 'AC'],
-    [mens, 1, '201', 4, 4800, 'Non-AC'],
-    [mens, 1, '202', 2, 6800, 'AC'],
-    [mens, 2, '301', 3, 5200, 'Non-AC']
-  ];
-  plan.forEach(function (p) {
-    var room = { id: uid('room'), propertyId: p[0], floor: p[1], number: p[2], sharing: p[3], beds: p[3], rent: p[4], ac: p[5] };
-    d.rooms.push(room);
-    for (var i = 0; i < p[3]; i++) {
-      d.beds.push({ id: uid('bed'), roomId: room.id, label: 'Bed ' + (i + 1), status: 'vacant', residentId: null });
-    }
-  });
-  function roomOf(id) { return d.rooms.filter(function (r) { return r.id === id; })[0]; }
-  function bedsOf(propId) {
-    return d.beds.filter(function (b) {
-      var r = roomOf(b.roomId);
-      return r && r.propertyId === propId;
-    });
-  }
-
-  var vacated = [];
-  function makeResidents(propId, names, count, recentCount) {
-    var beds = bedsOf(propId);
-    var target = Math.min(count, names.length, beds.length);
-    for (var i = 0; i < target; i++) {
-      var bed = beds[i];
-      var room = roomOf(bed.roomId);
-      var name = names[i];
-      var recent = i >= target - recentCount;
-      var res = {
-        id: uid('res'),
-        name: name,
-        phone: demoPhone(rnd),
-        guardianName: GUARDIANS[Math.floor(rnd() * GUARDIANS.length)],
-        guardianPhone: demoPhone(rnd),
-        college: PLACES[Math.floor(rnd() * PLACES.length)],
-        idType: 'Aadhaar',
-        idNumber: demoAadhaar(rnd),
-        photo: '',
-        propertyId: propId,
-        roomId: room.id,
-        bedId: bed.id,
-        joiningDate: recent ? demoJoining(rnd, true) : demoJoining(rnd, false),
-        rent: room.rent,
-        proRate: true,
-        depositAmount: room.rent,
-        depositReceived: rnd() > 0.12,
-        depositRefunded: false,
-        refundAmount: 0,
-        refundDate: '',
-        status: 'Active',
-        vacatingDate: '',
-        notes: rnd() > 0.8 ? ['Vegetarian', 'Needs parking for scooter', 'Late fee agreed for first month', 'Prefers top bunk', 'Allergic to peanuts'][Math.floor(rnd() * 5)] : '',
-        createdAt: new Date().toISOString()
-      };
-      d.residents.push(res);
-      bed.status = 'occupied';
-      bed.residentId = res.id;
-      if (i === target - 2) vacated.push({ res: res, bed: bed });
-    }
-  }
-  makeResidents(ladies, LADIES_NAMES, 20, 2);
-  makeResidents(mens, MENS_NAMES, 13, 1);
-
-  // two residents vacated earlier
-  vacated.slice(0, 2).forEach(function (v, idx) {
-    var back = idx + 1;
-    var mk = addMonths(thisMonth(), -back);
-    var day = 18 + idx;
-    var res = v.res;
-    res.status = 'Vacated';
-    res.vacatingDate = mk + '-' + pad2(day);
-    res.bedId = '';
-    res.roomId = '';
-    res.depositRefunded = true;
-    res.refundAmount = Math.max(0, res.depositAmount - 500);
-    res.refundDate = res.vacatingDate;
-    v.bed.status = 'vacant';
-    v.bed.residentId = null;
-  });
-
-  // rent dues and receipts
-  var modes = ['Cash', 'UPI', 'UPI', 'Bank transfer', 'UPI', 'Cash'];
-  d.residents.forEach(function (res) {
-    var joinMk = String(res.joiningDate).slice(0, 7);
-    var endMk = res.status === 'Vacated' ? String(res.vacatingDate).slice(0, 7) : thisMonth();
-    var startMk = addMonths(thisMonth(), -5);
-    if (joinMk > startMk) startMk = joinMk;
-    var mk = startMk;
-    var guard = 0;
-    while (mk <= endMk && guard < 12) {
-      var due = rentForMonth(res, mk);
-      var pay = { id: uid('pay'), residentId: res.id, month: mk, due: due, receipts: [], createdAt: new Date().toISOString() };
-      var isCur = mk === thisMonth();
-      var fullChance = isCur ? 0.55 : 0.9;
-      var partChance = isCur ? 0.2 : 0.07;
-      var roll = rnd();
-      var amount = 0;
-      if (roll < fullChance) amount = due;
-      else if (roll < fullChance + partChance) amount = Math.max(500, Math.round((due * (0.3 + rnd() * 0.35)) / 100) * 100);
-      if (amount > 0) {
-        var dim = daysInMonth(mk);
-        var startDay = 1;
-        if (joinMk === mk) startDay = parseISO(res.joiningDate).getDate();
-        var maxDay = isCur ? Math.max(1, new Date().getDate()) : dim;
-        var minDay = Math.min(startDay, maxDay);
-        var payDay = minDay + Math.floor(rnd() * Math.max(1, maxDay - minDay + 1));
-        var date = mk + '-' + pad2(Math.min(maxDay, payDay));
-        pay.receipts.push({
-          id: uid('rcpt'), amount: Math.min(amount, due), mode: modes[Math.floor(rnd() * modes.length)],
-          date: date, note: '', createdAt: new Date().toISOString()
-        });
-      }
-      syncPayment(pay);
-      d.payments.push(pay);
-      mk = addMonths(mk, 1); guard++;
-    }
-  });
-
-  // expenses
-  var expPlan = {};
-  expPlan[ladies] = [
-    ['Electricity', 7200, 900], ['Water', 1200, 200], ['Groceries', 9000, 1400],
-    ['Cook and staff salary', 18000, 1500], ['Maintenance', 2500, 800], ['Internet', 1200, 0], ['Gas', 1800, 200]
-  ];
-  expPlan[mens] = [
-    ['Electricity', 6100, 800], ['Water', 1100, 200], ['Groceries', 8500, 1200],
-    ['Cook and staff salary', 16000, 1200], ['Maintenance', 1800, 600], ['Internet', 1200, 0], ['Gas', 1700, 200]
-  ];
-  [ladies, mens].forEach(function (propId) {
-    for (var back = 5; back >= 0; back--) {
-      var mk = addMonths(thisMonth(), -back);
-      expPlan[propId].forEach(function (c) {
-        var base = c[1], jitter = c[2];
-        var amt = Math.max(200, Math.round((base + (rnd() * 2 - 1) * jitter) / 50) * 50);
-        var dim = daysInMonth(mk);
-        var maxDay = mk === thisMonth() ? Math.max(1, new Date().getDate()) : dim;
-        var day = 1 + Math.floor(rnd() * Math.min(26, maxDay));
-        d.expenses.push({
-          id: uid('exp'), propertyId: propId, date: mk + '-' + pad2(day),
-          category: c[0], amount: amt,
-          note: c[0] === 'Internet' ? 'Broadband bill' : c[0] === 'Cook and staff salary' ? 'Cook and cleaning staff' : '',
-          createdAt: new Date().toISOString()
-        });
-      });
-    }
-    d.expenses.push({
-      id: uid('exp'), propertyId: propId, date: thisMonth() + '-' + pad2(Math.min(12, new Date().getDate())),
-      category: 'Other', amount: propId === ladies ? 1800 : 1200, note: 'Mosquito nets and buckets', createdAt: new Date().toISOString()
-    });
-  });
-
-  d.meta.lastRunMonth = thisMonth();
-  return d;
-}
-
-function loadDemoData() {
-  var hasData = db.residents.length > 0 || db.rooms.length > 0;
-  var run = function () {
-    db = buildDemoDB();
-    ensureBedsForRooms(db);
-    reconcileBeds();
+function clearAllData() {
+  try {
+    db = blankDB();
     save();
     ui.prop = 'all'; ui.payMonth = thisMonth(); ui.payFilter = 'all';
     ui.resFilter = 'active'; ui.resQuery = '';
-    ui.report.prop = 'all'; ui.report.year = new Date().getFullYear(); ui.report.month = new Date().getMonth() + 1;
-    ui.report.tab = 'overview';
+    ui.report.prop = 'all'; ui.report.tab = 'overview';
     ui.tab = 'home'; ui.view = { name: 'home', params: {} };
     closeConfirm();
-    closeSheet();
     render();
     window.scrollTo(0, 0);
-    toast('Demo data loaded', 'good');
-  };
-  if (!hasData) return run();
-  askConfirm({
-    title: 'Replace your data with demo?',
-    message: 'This will replace everything on this phone with sample data. Back up first if you have real data.',
-    confirmLabel: 'Load demo data',
-    icon: 'sparkle',
-    onYes: run
-  });
+    toast('Everything erased', 'good');
+  } catch (e) {
+    console.warn(e);
+    toast('Could not erase the data.', 'bad');
+  }
 }
-function clearAllData() {
-  askConfirm({
-    title: 'Clear all data?',
-    message: 'All residents, rooms, payments and expenses will be deleted from this phone. This cannot be undone.',
-    confirmLabel: 'Yes, clear everything',
-    icon: 'trash',
-    onYes: function () {
-      try {
-        db = blankDB();
-        save();
-        ui.prop = 'all'; ui.payMonth = thisMonth(); ui.payFilter = 'all';
-        ui.resFilter = 'active'; ui.resQuery = '';
-        ui.report.prop = 'all'; ui.report.tab = 'overview';
-        ui.tab = 'home'; ui.view = { name: 'home', params: {} };
-        closeConfirm();
-        render();
-        window.scrollTo(0, 0);
-        toast('All data cleared', 'good');
-      } catch (e) {
-        console.warn(e);
-        toast('Could not clear data.', 'bad');
-      }
-    }
-  });
+function requestEraseAll() {
+  var ask = function () {
+    askConfirm({
+      title: 'Erase everything?',
+      message: 'This deletes all residents, rooms and payments. Backup first.',
+      confirmLabel: 'Yes, erase everything',
+      icon: 'trash',
+      onYes: clearAllData
+    });
+  };
+  if (!readPinRecord()) return ask();
+  requestPinVerify(ask);
 }
 
 /* ===========================================================================
@@ -3757,7 +3501,7 @@ var PIN_KEY = 'hostelManager.pin';
 var PIN_TTL_MS = 2 * 60 * 1000;
 var pinState = {
   record: null, mode: 'none', entry: '', first: '', error: '', showHelp: false,
-  busy: false, attempts: 0, blockedUntil: 0, shake: false
+  busy: false, attempts: 0, blockedUntil: 0, shake: false, afterVerify: null
 };
 var lockHiddenAt = 0;
 
@@ -3850,13 +3594,15 @@ function lockHelpHTML() {
 }
 function lockHTML() {
   var isSetup = pinState.mode === 'setup' || pinState.mode === 'confirm';
-  var title = pinState.mode === 'setup' ? 'Create your PIN'
+  var title = pinState.mode === 'setup' ? 'Set your 4-digit PIN'
     : pinState.mode === 'confirm' ? 'Confirm your PIN' : 'Enter your PIN';
   var sub = pinState.mode === 'setup'
     ? 'Choose 4 digits to keep your hostel data private.'
     : pinState.mode === 'confirm'
       ? 'Type the same 4 digits again.'
-      : 'Welcome back' + (db.settings.ownerName ? ', ' + String(db.settings.ownerName).split(' ')[0] : '') + '.';
+      : pinState.mode === 'verify'
+        ? 'Confirm it is you before erasing everything.'
+        : 'Welcome back' + (db.settings.ownerName ? ', ' + String(db.settings.ownerName).split(' ')[0] : '') + '.';
   var dots = [0, 1, 2, 3].map(function (i) {
     return '<span class="' + (i < pinState.entry.length ? 'on' : '') + '"></span>';
   }).join('');
@@ -3872,7 +3618,9 @@ function lockHTML() {
       '</div>' +
       (pinState.mode === 'locked'
         ? '<button class="lock-link" data-act="pin-help">Forgot PIN?</button>'
-        : '<button class="lock-link" data-act="pin-cancel">Not now</button>');
+        : pinState.mode === 'verify'
+          ? '<button class="lock-link" data-act="pin-cancel">Cancel</button>'
+          : '');
   return '<div class="lock-screen" data-mode="' + pinState.mode + '">' +
     '<div class="lock-glow"></div>' +
     '<div class="lock-inner">' +
@@ -3918,6 +3666,7 @@ function hideLock() {
   pinState.first = '';
   pinState.error = '';
   pinState.showHelp = false;
+  pinState.afterVerify = null;
   renderLock();
   if (was && !ui.sheet && !ui.confirm) document.body.classList.remove('is-locked');
 }
@@ -3933,6 +3682,7 @@ function lockApp() {
 function initLock() {
   pinState.record = readPinRecord();
   if (pinState.record) showLock('locked');
+  else showLock('setup');
 }
 function pinPress(digit) {
   if (pinState.mode === 'none' || pinState.busy || pinState.showHelp) return;
@@ -3995,14 +3745,16 @@ async function onPinComplete() {
     toast('PIN set \u00B7 keep it safe', 'good');
     return;
   }
-  // locked
+  // locked or verifying before a sensitive action
   var good = await checkPin(entered);
   pinState.busy = false;
   if (good) {
     pinState.attempts = 0;
     pinState.blockedUntil = 0;
+    var after = pinState.afterVerify;
     hideLock();
     render();
+    if (mode === 'verify' && typeof after === 'function') after();
     return;
   }
   pinState.attempts += 1;
@@ -4018,9 +3770,14 @@ async function onPinComplete() {
   setTimeout(function () { pinState.shake = false; if (pinState.mode !== 'none') renderLock(); }, 360);
   if (pinState.blockedUntil) {
     setTimeout(function () {
-      if (pinState.mode === 'locked') { pinState.error = ''; renderLock(); }
+      if (pinState.mode !== 'none') { pinState.error = ''; renderLock(); }
     }, 30500);
   }
+}
+function requestPinVerify(onOk) {
+  if (!readPinRecord()) { if (typeof onOk === 'function') onOk(); return; }
+  pinState.afterVerify = onOk || null;
+  showLock('verify');
 }
 function focusPinRestore(which) {
   ui.restoreResetPin = true;
@@ -4160,6 +3917,8 @@ document.addEventListener('click', function (e) {
   var el = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!el) return;
   var act = el.getAttribute('data-act');
+  // While the PIN screen is up, nothing behind it may be used.
+  if (pinState.mode !== 'none' && act.indexOf('pin-') !== 0 && act !== 'confirm-yes' && act !== 'confirm-no') return;
   var id = el.getAttribute('data-id');
   try {
     switch (act) {
@@ -4420,9 +4179,6 @@ document.addEventListener('click', function (e) {
       case 'share-backup':
         shareBackup();
         break;
-      case 'set-pin':
-        showLock('setup');
-        break;
       case 'pin-cancel':
         hideLock();
         break;
@@ -4466,11 +4222,8 @@ document.addEventListener('click', function (e) {
         var rf = $('#restoreFile');
         if (rf) rf.click();
         break;
-      case 'load-demo':
-        loadDemoData();
-        break;
       case 'clear-all':
-        clearAllData();
+        requestEraseAll();
         break;
       case 'install-help':
         openSheet('install');
