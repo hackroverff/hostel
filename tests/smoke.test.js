@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
+const { seedFixture } = require('./fixture');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
@@ -12,28 +13,35 @@ function ok(cond, label) {
 }
 function text(el) { return (el ? el.textContent : '').replace(/\s+/g, ' ').trim(); }
 
-const dom = new JSDOM(html, {
-  url: 'https://example.test/',
-  runScripts: 'dangerously',
-  pretendToBeVisual: true,
-  beforeParse(w) {
-    w.scrollTo = () => {};
-    w.print = () => { w.__printed = true; };
-    w.__downloads = [];
-    w.__blobs = new Map();
-    let n = 0;
-    w.URL.createObjectURL = (b) => { const u = 'blob:stub' + (++n); w.__blobs.set(u, b); return u; };
-    w.URL.revokeObjectURL = () => {};
-    w.HTMLAnchorElement.prototype.click = function () {
-      w.__downloads.push({ download: this.download, href: this.href });
-    };
-    w.HTMLElement.prototype.scrollIntoView = function () {};
-  }
-});
-const w = dom.window;
-const d = w.document;
-const errors = [];
-w.addEventListener('error', (e) => errors.push(String(e.message)));
+let w = null;
+let d = null;
+let errors = [];
+
+function open(seed) {
+  errors = [];
+  const dom = new JSDOM(html, {
+    url: 'https://example.test/',
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    beforeParse(win) {
+      win.scrollTo = () => {};
+      win.print = () => { win.__printed = true; };
+      win.__downloads = [];
+      win.__blobs = new Map();
+      let n = 0;
+      win.URL.createObjectURL = (b) => { const u = 'blob:stub' + (++n); win.__blobs.set(u, b); return u; };
+      win.URL.revokeObjectURL = () => {};
+      win.HTMLAnchorElement.prototype.click = function () {
+        win.__downloads.push({ download: this.download, href: this.href });
+      };
+      win.HTMLElement.prototype.scrollIntoView = function () {};
+      if (seed) win.localStorage.setItem('hostelManager.v1', JSON.stringify(seed));
+    }
+  });
+  w = dom.window;
+  d = w.document;
+  w.addEventListener('error', (e) => errors.push(String(e.message)));
+}
 
 function q(sel) { return d.querySelector(sel); }
 function qa(sel) { return Array.from(d.querySelectorAll(sel)); }
@@ -59,44 +67,103 @@ function submit(form) {
 function db() {
   return JSON.parse(w.localStorage.getItem('hostelManager.v1'));
 }
-function settle() { return new Promise((r) => setTimeout(r, 20)); }
+function settle(ms) { return new Promise((r) => setTimeout(r, ms || 20)); }
+
+async function pinEntry(digits) {
+  for (const ch of String(digits)) click(q('.lock-key[data-digit="' + ch + '"]'));
+  await settle(240);
+}
+async function unlock() {
+  await settle(150);
+  if (!q('.lock-screen')) return;
+  if (q('.lock-screen').getAttribute('data-mode') === 'setup') {
+    await pinEntry('1234');
+    await pinEntry('1234');
+  } else {
+    await pinEntry('1234');
+  }
+  await settle(150);
+}
 
 (async function run() {
-  await settle();
+  // ---------- fresh phone: PIN first, then onboarding ----------
+  open(null);
+  await settle(120);
+  ok(!!q('#lockLayer.open'), 'fresh phone opens on the PIN screen');
+  ok(q('.lock-screen').getAttribute('data-mode') === 'setup', 'PIN setup mode on first open');
+  ok(/Set your 4-digit PIN/.test(text(q('.lock-title'))), 'asks to set a 4-digit PIN');
+  ok(d.body.classList.contains('is-locked'), 'the app is blocked while the PIN screen is up');
+  clickAct('add-resident');
+  await settle(60);
+  ok(!q('#sheetLayer .sheet'), 'home actions cannot be used until the PIN is set');
+  await pinEntry('1234');
+  ok(/Confirm/.test(text(q('.lock-title'))), 'asks to confirm the PIN');
+  await pinEntry('1234');
+  await settle(150);
+  ok(!q('#lockLayer.open'), 'lock goes away after the PIN is confirmed');
+  ok(/PIN set/.test(text(q('#toast'))), 'toast confirms the PIN was set');
+
   ok(!!q('.hero'), 'home screen renders hero card');
   ok(text(q('.brand-name')).includes('Hostel Manager'), 'brand shown');
   ok(qa('.tab').length === 5, 'five bottom tabs');
   ok(qa('.tab[aria-current="page"]').length === 1, 'one active tab');
   ok(!!q('.onboard-card'), 'onboarding card on empty data');
+  ok(!q('[data-act="load-demo"]'), 'no demo button on the empty Home screen');
+  ok(!!q('[data-act="add-room"]'), 'Add a room stays on the empty Home screen');
   const props = db().properties.map((p) => p.name);
   ok(props.length === 2 && /Ladies/.test(props[0]) && /Men/.test(props[1]), 'two properties preloaded: ' + props.join(' | '));
   ok(w.localStorage.getItem('hostelManager.v1') !== null, 'data saved to localStorage');
 
-  // ---------- demo data ----------
-  clickAct('load-demo');
+  // add a room on the empty app
+  clickAct('add-room');
+  await settle();
+  let roomForm = q('#sheetLayer form[data-form="room"]');
+  ok(!!roomForm, 'add room sheet opens');
+  roomForm.elements['number'].value = '401';
+  roomForm.elements['beds'].value = '2';
+  roomForm.elements['rent'].value = '6500';
+  submit(roomForm);
   await settle();
   let data = db();
-  ok(data.residents.length > 25, 'demo residents created (' + data.residents.length + ')');
-  ok(data.rooms.length === 13, 'demo rooms created (' + data.rooms.length + ')');
-  ok(data.payments.length > 100, 'demo dues created (' + data.payments.length + ')');
-  ok(data.expenses.length > 50, 'demo expenses created (' + data.expenses.length + ')');
-  ok(!!q('.hero-amount'), 'hero renders after demo');
+  ok(data.rooms.some((r) => r.number === '401'), 'new room saved');
+  ok(data.beds.filter((b) => b.roomId === data.rooms.find((r) => r.number === '401').id).length === 2, 'beds auto-created for new room');
+
+  // duplicate room number validation
+  clickAct('tab', '[data-tab="rooms"]');
+  await settle();
+  clickAct('add-room');
+  await settle();
+  roomForm = q('#sheetLayer form[data-form="room"]');
+  roomForm.elements['number'].value = '401';
+  roomForm.elements['beds'].value = '2';
+  roomForm.elements['rent'].value = '6500';
+  submit(roomForm);
+  await settle();
+  ok(!!q('#sheetLayer .field.has-error'), 'duplicate room number rejected');
+  clickAct('close-sheet');
+  await settle();
+
+  // ---------- seeded app ----------
+  open(seedFixture());
+  await unlock();
+  ok(!q('#lockLayer.open'), 'seeded phone unlocked');
+  ok(!q('[data-act="load-demo"]'), 'demo action is gone everywhere');
+  ok(!!q('.hero-amount'), 'hero renders with data');
   const heroAmount = text(q('.hero-amount'));
   ok(/^₹[\d,]+$/.test(heroAmount), 'Indian currency format in hero: ' + heroAmount);
   ok(!q('.onboard-card'), 'onboarding hidden with data');
   ok(qa('.list-row').length > 0, 'pending list rows rendered');
   ok(qa('a[href^="https://wa.me/91"]').length > 0, 'WhatsApp links use wa.me with +91');
-  ok(qa('a[href^="tel:+91"]').length === 0 || true, 'tel links well formed');
 
   // occupancy numbers
   const occCells = qa('.occ-cell .n').map(text);
   ok(occCells.length === 3, 'occupancy card has 3 stats: ' + occCells.join('/'));
 
-  // ---------- tabs ----------
+  // ---------- tabs: rooms ----------
   clickAct('tab', '[data-tab="rooms"]');
   await settle();
-  ok(qa('.room-card').length === 13, 'all 13 room cards render');
-  ok(qa('.bed').length > 30, 'beds render (' + qa('.bed').length + ')');
+  ok(qa('.room-card').length === 4, 'all 4 room cards render');
+  ok(qa('.bed').length === 11, 'beds render (' + qa('.bed').length + ')');
   ok(qa('.bed.vacant').length > 0, 'vacant beds exist');
   ok(qa('.floor-head').length >= 3, 'rooms grouped by floor');
   const bedName = text(q('.bed.occupied .bn'));
@@ -107,33 +174,6 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   await settle();
   ok(!!q('#sheetLayer .sheet'), 'bed sheet opens');
   ok(/View profile/.test(text(q('#sheetLayer'))), 'bed sheet shows resident actions');
-  clickAct('close-sheet');
-  await settle();
-
-  // add a room
-  clickAct('add-room');
-  await settle();
-  let roomForm = q('#sheetLayer form[data-form="room"]');
-  ok(!!roomForm, 'add room sheet opens');
-  roomForm.elements['number'].value = '401';
-  roomForm.elements['beds'].value = '2';
-  roomForm.elements['rent'].value = '6500';
-  submit(roomForm);
-  await settle();
-  data = db();
-  ok(data.rooms.some((r) => r.number === '401'), 'new room saved');
-  ok(data.beds.filter((b) => b.roomId === data.rooms.find((r) => r.number === '401').id).length === 2, 'beds auto-created for new room');
-
-  // duplicate room number validation
-  clickAct('add-room');
-  await settle();
-  roomForm = q('#sheetLayer form[data-form="room"]');
-  roomForm.elements['number'].value = '401';
-  roomForm.elements['beds'].value = '2';
-  roomForm.elements['rent'].value = '6500';
-  submit(roomForm);
-  await settle();
-  ok(!!q('#sheetLayer .field.has-error'), 'duplicate room number rejected');
   clickAct('close-sheet');
   await settle();
 
@@ -172,6 +212,8 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   click(profileBack);
   await settle();
   ok(!!q('#resSearch'), 'back returns to residents list');
+  clickAct('res-filter', '[data-filter="active"]');
+  await settle();
 
   // ---------- payments ----------
   clickAct('tab', '[data-tab="payments"]');
@@ -254,7 +296,7 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   // expenses add
   clickAct('add-expense');
   await settle();
-  let expForm = q('#sheetLayer form[data-form="expense"]');
+  const expForm = q('#sheetLayer form[data-form="expense"]');
   ok(!!expForm, 'expense sheet opens');
   expForm.elements['amount'].value = '1234';
   submit(expForm);
@@ -289,6 +331,11 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   clickAct('settings');
   await settle();
   ok(/Settings/.test(text(q('.topbar'))), 'settings opens');
+  ok(!/Load demo data/.test(text(q('.screen'))), 'settings has no Load demo data row');
+  ok(/Erase everything/.test(text(q('.screen'))), 'settings offers Erase everything');
+  ok(!/Clear all data/.test(text(q('.screen'))), 'old Clear all data label is gone');
+  ok(!/Set a PIN/.test(text(q('.screen'))), 'settings no longer offers an optional Set a PIN row');
+  ok(/Change PIN/.test(text(q('.screen'))), 'settings keeps Change PIN');
   ok(!!q('#waTemplate'), 'whatsApp template field');
   const tpl = q('#waTemplate');
   setVal(tpl, 'Hi {name}, please pay ₹{balance} for {month}. UPI {upi}');
@@ -320,13 +367,22 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   clickAct('close-sheet');
   await settle();
 
+  // ---------- property switch ----------
+  clickAct('tab', '[data-tab="home"]');
+  await settle();
+  clickAct('prop', '[data-prop="prop_ladies"]');
+  await settle();
+  ok(/Sathvika MV Ladies Hostel/.test(text(q('.screen'))), 'property switch renders Ladies');
+  ok(qa('.occ-cell .n').length === 3, 'occupancy recomputed for Ladies');
+  clickAct('prop', '[data-prop="all"]');
+  await settle();
+
   // ---------- vacate flow ----------
   clickAct('tab', '[data-tab="residents"]');
   await settle();
   click(q('.res-card'));
   await settle();
   const beforeVacate = db();
-  const activeId = w.location.hash ? null : null;
   clickAct('ask-vacate');
   await settle();
   ok(!!q('#sheetLayer form[data-form="vacate"]'), 'vacate sheet opens');
@@ -346,32 +402,26 @@ function settle() { return new Promise((r) => setTimeout(r, 20)); }
   ok(activeNow.every((r) => duesNow.some((p) => p.residentId === r.id)), 'every active resident has a due this month');
   ok(!activeNow.some((r) => duesNow.filter((p) => p.residentId === r.id).length > 1), 'no duplicate monthly dues');
 
-  // ---------- clear all ----------
+  // ---------- erase everything ----------
   clickAct('tab', '[data-tab="home"]');
   await settle();
   clickAct('settings');
   await settle();
   clickAct('clear-all');
-  await settle();
-  ok(!!q('#confirmLayer .sheet'), 'confirm dialog before clear');
+  await settle(120);
+  ok(!!q('#lockLayer.open'), 'erase asks for the PIN first');
+  ok(!q('#confirmLayer .sheet'), 'no delete confirmation before the PIN is entered');
+  await pinEntry('1234');
+  await settle(250);
+  ok(!!q('#confirmLayer .sheet'), 'confirm dialog appears after the PIN');
+  ok(/This deletes all residents, rooms and payments\. Backup first\./.test(text(q('#confirmLayer'))), 'confirmation warns about the delete');
   clickAct('confirm-yes');
   await settle();
   data = db();
-  ok(data.residents.length === 0 && data.rooms.length === 0, 'clear all data works');
-  ok(!!q('.onboard-card'), 'back to onboarding after clear');
+  ok(data.residents.length === 0 && data.rooms.length === 0 && data.payments.length === 0, 'erase everything works');
+  ok(!!q('.onboard-card'), 'back to onboarding after erasing');
+  ok(/Everything erased/.test(text(q('#toast'))), 'erase toast shown');
 
-  // ---------- property switch ----------
-  clickAct('load-demo');
-  await settle();
-  const allBeds = db().beds.length;
-  clickAct('prop', '[data-prop="prop_ladies"]');
-  await settle();
-  ok(/Ladies/.test(text(q('.hero-caption')) ) || true, 'property switch renders');
-  const ladiesBeds = qa('.occ-cell .n').length;
-  ok(ladiesBeds === 3, 'occupancy recomputed for Ladies');
-
-  // ---------- restore ----------
-  // simulate a restore by writing a backup shaped object through the file reader path
   console.log('\nErrors captured: ' + errors.length);
   if (errors.length) console.log(errors.slice(0, 10).join('\n'));
   console.log(failures === 0 ? '\nALL TESTS PASSED' : '\n' + failures + ' TEST(S) FAILED');

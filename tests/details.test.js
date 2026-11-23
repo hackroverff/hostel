@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
+const { seedFixture } = require('./fixture');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 let failures = 0;
@@ -10,12 +11,13 @@ function text(el) { return (el ? el.textContent : '').replace(/\s+/g, ' ').trim(
 const pad = (n) => String(n).padStart(2, '0');
 const thisMk = () => { const n = new Date(); return n.getFullYear() + '-' + pad(n.getMonth() + 1); };
 
-function boot() {
+function boot(seed) {
   const dom = new JSDOM(html, {
     url: 'https://example.test/', runScripts: 'dangerously', pretendToBeVisual: true,
     beforeParse(w) {
       w.scrollTo = () => {};
       w.print = () => {};
+      if (seed) w.localStorage.setItem('hostelManager.v1', JSON.stringify(seed));
       w.__downloads = [];
       w.__blobs = new Map();
       let n = 0;
@@ -32,14 +34,23 @@ function boot() {
   const submit = (f) => f.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
   const db = () => JSON.parse(w.localStorage.getItem('hostelManager.v1'));
   const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40));
-  return { w, d, q, qa, click, act, submit, db, settle };
+  const pinEntry = async (digits) => {
+    for (const ch of String(digits)) click(q('.lock-key[data-digit="' + ch + '"]'));
+    await settle(240);
+  };
+  const unlock = async () => {
+    await settle(150);
+    if (!q('.lock-screen')) return;
+    await pinEntry('1234');
+    await pinEntry('1234');
+    await settle(150);
+  };
+  return { w, d, q, qa, click, act, submit, db, settle, pinEntry, unlock };
 }
 
 (async function () {
-  const t = boot();
-  await t.settle();
-  t.act('load-demo');
-  await t.settle(120);
+  const t = boot(seedFixture());
+  await t.unlock();
 
   // ---------------------------------------------------------- payment options
   t.act('tab', '[data-tab="payments"]');
