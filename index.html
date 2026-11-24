@@ -296,6 +296,11 @@ img{max-width:100%;display:block}
 .checkline{display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 2px;cursor:pointer}
 .field > label.deposit-check,.deposit-check{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 12px;border:1.5px solid #E4E9F2;border-radius:14px;background:#F7F9FD;cursor:pointer}
 .deposit-check input{margin:0}
+.pro-card{background:#F7F9FD;border:1px solid #E2E8F0;border-radius:14px;padding:12px 13px;margin-bottom:10px}
+.pro-line{font-size:12.5px;color:var(--ink-2);line-height:1.55;margin-top:3px}
+.pro-total{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px dashed #DCE4F2;margin-top:9px;padding-top:8px;font-size:14px}
+html.large-text .pro-line{font-size:14.5px}
+html.large-text .pro-total{font-size:16px}
 .deposit-check span{font-size:14px;line-height:1.2}
 .checkline input{
   width:24px;height:24px;border-radius:8px;border:1.5px solid #CBD5E1;appearance:none;-webkit-appearance:none;
@@ -982,11 +987,13 @@ function blankDB() {
     properties: [
       {
         id: 'prop_ladies', name: 'Sathvika MV Ladies Hostel', rent: 6500, advance: 6500,
-        electricity: { mode: 'split', amount: 0 }
+        electricity: { mode: 'split', amount: 0 },
+        midMonth: { basis: 'fixed30', countJoinDay: true, rounding: 'nearest', prorateElec: false, chargeFullOnLeave: true }
       },
       {
         id: 'prop_mens', name: 'Sathvika MV Men\u2019s Hostel', rent: 4000, advance: 4000,
-        electricity: { mode: 'fixed', amount: 250 }
+        electricity: { mode: 'fixed', amount: 250 },
+        midMonth: { basis: 'fixed30', countJoinDay: true, rounding: 'nearest', prorateElec: false, chargeFullOnLeave: true }
       }
     ],
     rooms: [],
@@ -1048,6 +1055,14 @@ function upgrade(d) {
       mode: elec.mode === 'split' ? 'split' : elec.mode === 'fixed' ? 'fixed' : def.mode,
       amount: typeof elec.amount === 'number' && isFinite(elec.amount) ? elec.amount : def.amount
     };
+    var mid = prop.midMonth || {};
+    prop.midMonth = {
+      basis: mid.basis === 'actual' ? 'actual' : 'fixed30',
+      countJoinDay: mid.countJoinDay === undefined ? true : !!mid.countJoinDay,
+      rounding: (mid.rounding === 'up' || mid.rounding === 'down') ? mid.rounding : 'nearest',
+      prorateElec: !!mid.prorateElec,
+      chargeFullOnLeave: mid.chargeFullOnLeave === undefined ? true : !!mid.chargeFullOnLeave
+    };
   });
   d.electricityBills.forEach(function (b) {
     b.amount = num(b.amount);
@@ -1080,6 +1095,14 @@ function upgrade(d) {
     r.depositAmount = num(r.depositAmount);
     if (typeof r.depositReceived !== 'boolean') r.depositReceived = r.depositAmount > 0;
     delete r.proRate;
+    ['firstMonth', 'lastMonth'].forEach(function (k) {
+      var o = r[k];
+      if (!o || typeof o !== 'object' || !/^\d{4}-\d{2}$/.test(String(o.month || ''))) { delete r[k]; return; }
+      o.mode = o.mode === 'full' ? 'full' : 'prorated';
+      o.days = o.days == null ? null : clamp(num(o.days), 0, 31);
+      o.rent = o.rent == null ? null : Math.max(0, Math.round(num(o.rent)));
+      o.edited = !!o.edited;
+    });
   });
   d.expenses.forEach(function (e) { e.amount = num(e.amount); });
   ensureBedsForRooms(d);
@@ -1216,24 +1239,52 @@ function electricityShare(propId, mk) {
   if (!count) return null;
   return Math.round(num(bill.amount) / count);
 }
+/* "About X each" hint for the bill sheet, aware of day weighting. */
+function electricityShareHint(propId, mk) {
+  var mid = midSettings(propId);
+  var cfg = propElectricity(propId);
+  var bill = electricityBillFor(propId, mk);
+  if (!bill || cfg.mode !== 'split') return '';
+  var list = residentsActiveInMonth(propId, mk);
+  if (!list.length) return '';
+  if (!mid.prorateElec) return 'About ' + money(Math.round(num(bill.amount) / list.length)) + ' each.';
+  var totalDays = list.reduce(function (sum, x) { return sum + stayDaysInMonth(x, mk); }, 0);
+  if (!totalDays) return '';
+  return 'Split by days stayed, so a mid-month joiner pays less.';
+}
+/* Electricity for one resident in one month.
+   Fixed per person  -> the same amount, or the amount scaled by days stayed.
+   Split hostel bill -> an equal share, or a share weighted by days stayed.   */
+function electricityShareFor(r, mk) {
+  if (!r) return null;
+  var cfg = propElectricity(r.propertyId);
+  var mid = midSettings(r.propertyId);
+  var days = stayDaysInMonth(r, mk);
+  var basis = basisDaysFor(r.propertyId, mk);
+  if (cfg.mode === 'fixed') {
+    if (!mid.prorateElec) return cfg.amount;
+    if (days >= basis) return roundRupees(cfg.amount, mid.rounding);
+    return roundRupees(num(cfg.amount) * days / (basis || 30), mid.rounding);
+  }
+  var bill = electricityBillFor(r.propertyId, mk);
+  if (!bill) return null;
+  var list = residentsActiveInMonth(r.propertyId, mk);
+  if (!list.length) return null;
+  if (!mid.prorateElec) return Math.round(num(bill.amount) / list.length);
+  var totalDays = list.reduce(function (sum, x) { return sum + stayDaysInMonth(x, mk); }, 0);
+  if (!totalDays) return null;
+  return roundRupees(num(bill.amount) * days / totalDays, mid.rounding);
+}
 /* Recompute every due's electricity line, then the total due. Manual edits win. */
 function syncElectricity() {
   if (!db) return false;
   var changed = false;
-  var shareCache = {};
   db.payments.forEach(function (p) {
     var r = residentById(p.residentId);
     if (!r) return;
-    var cfg = propElectricity(r.propertyId);
     var next;
     if (p.electricityManual) next = num(p.electricity);
-    else if (cfg.mode === 'fixed') next = cfg.amount;
-    else {
-      var key = r.propertyId + '|' + p.month;
-      if (!(key in shareCache)) shareCache[key] = electricityShare(r.propertyId, p.month);
-      var share = shareCache[key];
-      next = share === null ? null : share;
-    }
+    else next = electricityShareFor(r, p.month);
     if (next !== p.electricity) { p.electricity = next; changed = true; }
     var total = num(p.rent) + (p.electricity == null ? 0 : num(p.electricity));
     if (total !== p.due) { p.due = total; changed = true; }
@@ -1254,6 +1305,7 @@ function electricityPending(p) {
 }
 function splitLine(p) {
   var parts = ['Rent ' + money(num(p.rent))];
+  if (proOf(p)) parts.push(proOf(p).days + ' of ' + proOf(p).basisDays + ' days');
   if (p.electricity == null) parts.push('Electricity pending');
   else parts.push('Electricity ' + money(num(p.electricity)));
   return parts.join(' \u00B7 ');
@@ -1345,9 +1397,131 @@ function dueDayLabel() {
   return ordinal(d) + ' of every month';
 }
 
-/* --- rent for a resident in a month: always the full monthly rent --- */
-function rentForMonth(resident) {
-  return num(resident.rent);
+/* --- mid-month joining / leaving -------------------------------------------
+   Each hostel chooses how a part-month is charged (Settings -> Hostel settings):
+     basis            'fixed30' (30-day month) or 'actual' (days in that month)
+     countJoinDay     whether the joining day itself is charged
+     rounding         'nearest' | 'up' | 'down' (rupees)
+     prorateElec      weight electricity by days stayed
+     chargeFullOnLeave  charge the whole month even when someone leaves mid-month
+   Per-day rate = monthly rent / basis. Part-month rent = per-day x days stayed,
+   capped at the full monthly rent.                                           */
+var MID_DEFAULTS = { basis: 'fixed30', countJoinDay: true, rounding: 'nearest', prorateElec: false, chargeFullOnLeave: true };
+function midSettings(propId) {
+  var prop = propById(propId);
+  var raw = (prop && prop.midMonth) || {};
+  var d = MID_DEFAULTS;
+  return {
+    basis: raw.basis === 'actual' ? 'actual' : (raw.basis === 'fixed30' ? 'fixed30' : d.basis),
+    countJoinDay: raw.countJoinDay === undefined ? d.countJoinDay : !!raw.countJoinDay,
+    rounding: (raw.rounding === 'up' || raw.rounding === 'down') ? raw.rounding : d.rounding,
+    prorateElec: !!raw.prorateElec,
+    chargeFullOnLeave: raw.chargeFullOnLeave === undefined ? d.chargeFullOnLeave : !!raw.chargeFullOnLeave
+  };
+}
+function basisDaysFor(propId, mk) {
+  return midSettings(propId).basis === 'actual' ? daysInMonth(mk) : 30;
+}
+function roundRupees(v, mode) {
+  var n = num(v);
+  if (mode === 'up') return Math.ceil(n - 1e-9);
+  if (mode === 'down') return Math.floor(n + 1e-9);
+  return Math.round(n);
+}
+function perDayPaise(rent, basis) { return Math.round(num(rent) * 100 / (num(basis) || 30)); }
+function moneyPaise(v) {
+  var n = Math.round(num(v) * 100) / 100;
+  var parts = n.toFixed(2).split('.');
+  return '\u20B9' + groupNum(num(parts[0])) + '.' + parts[1];
+}
+function dayOfMonth(iso) { return num(String(iso || '').slice(8, 10)); }
+/* Calendar days a resident stayed inside a month (0 when not there at all). */
+function stayDaysInMonth(r, mk) {
+  if (!r || !mk) return 0;
+  var cfg = midSettings(r.propertyId);
+  var total = daysInMonth(mk);
+  var startDay = 1, endDay = total;
+  var joinMk = String(r.joiningDate || '').slice(0, 7);
+  if (joinMk && joinMk > mk) return 0;
+  if (joinMk === mk) {
+    var jd = dayOfMonth(r.joiningDate);
+    if (jd) startDay = jd <= 1 ? 1 : clamp(jd + (cfg.countJoinDay ? 0 : 1), 1, total + 1);
+  }
+  if (r.vacatingDate && String(r.vacatingDate).slice(0, 7) === mk) {
+    var vd = dayOfMonth(r.vacatingDate) || total;
+    endDay = clamp(vd, 0, total);
+  }
+  return clamp(endDay - startDay + 1, 0, total);
+}
+/* The rent a resident owes for one month, with the working shown. */
+function planFor(r, mk) {
+  var month = mk || thisMonth();
+  var rent = num(r && r.rent);
+  var cfg = midSettings(r ? r.propertyId : '');
+  var basis = basisDaysFor(r ? r.propertyId : '', month);
+  var perDay = perDayPaise(rent, basis);
+  var full = {
+    mode: 'full', reason: '', month: month, rent: rent, fullRent: rent,
+    days: Math.min(daysInMonth(month), basis), basisDays: basis, perDay: perDay, edited: false
+  };
+  if (!r) return full;
+  var joinMk = String(r.joiningDate || '').slice(0, 7);
+  var leaveMk = r.status === 'Vacated' ? String(r.vacatingDate || '').slice(0, 7) : '';
+  var isJoin = joinMk === month && dayOfMonth(r.joiningDate) > 1;
+  var isLeave = leaveMk === month && !cfg.chargeFullOnLeave && dayOfMonth(r.vacatingDate) < daysInMonth(month);
+  if (!isJoin && !isLeave) return full;
+  var override = null;
+  if (isJoin && r.firstMonth && r.firstMonth.month === month) override = r.firstMonth;
+  if (isLeave && r.lastMonth && r.lastMonth.month === month) override = r.lastMonth;
+  if (override && override.mode === 'full') {
+    return Object.assign({}, full, { reason: isJoin ? 'join' : 'leave' });
+  }
+  var days = override && override.days != null ? clamp(num(override.days), 0, daysInMonth(month)) : stayDaysInMonth(r, month);
+  var amount;
+  if (override && override.edited && override.rent != null) amount = num(override.rent);
+  else amount = roundRupees(perDay * days / 100, cfg.rounding);
+  if (amount > rent) amount = rent;
+  if (amount < 0) amount = 0;
+  return {
+    mode: 'prorated', reason: isJoin ? 'join' : 'leave', month: month, rent: amount, fullRent: rent,
+    days: days, basisDays: basis, perDay: perDay, edited: !!(override && override.edited)
+  };
+}
+/* --- rent for a resident in a month --- */
+function rentForMonth(resident, mk) {
+  return planFor(resident, mk || thisMonth()).rent;
+}
+function proOf(p) {
+  if (!p) return null;
+  if (p.pro && p.pro.mode === 'prorated') return p.pro;
+  return null;
+}
+function proLine(pro) {
+  if (!pro) return '';
+  return pro.days + ' of ' + pro.basisDays + ' days @ ' + moneyPaise(pro.perDay / 100);
+}
+/* Recalculate part-month dues after a settings or rent change.
+   Dues that already have money against them are left alone and reported. */
+function recalcProDues(opts) {
+  opts = opts || {};
+  var changed = 0, skipped = 0;
+  if (!db) return { changed: 0, skipped: 0 };
+  db.payments.forEach(function (p) {
+    var r = residentById(p.residentId);
+    if (!r) return;
+    var plan = planFor(r, p.month);
+    var wasPro = !!(p.pro && p.pro.mode === 'prorated');
+    if (!plan.reason && !wasPro) return;
+    if (paidOf(p) > 0) { skipped++; return; }
+    if (plan.rent === p.rent && JSON.stringify(plan) === JSON.stringify(p.pro)) return;
+    p.rent = plan.rent;
+    p.pro = plan.mode === 'prorated' ? plan : null;
+    syncPayment(p);
+    changed++;
+  });
+  syncElectricity();
+  if (changed) save(opts.silent ? { local: true } : undefined);
+  return { changed: changed, skipped: skipped };
 }
 
 /* --- keep beds in sync with residents (single source of truth = resident.bedId) --- */
@@ -1421,9 +1595,11 @@ function ensureDues() {
       if (joinMk && joinMk > mk) return;
       if (db.payments.some(function (p) { return p.residentId === r.id && p.month === mk; })) return;
       if (r.joiningDate && r.joiningDate > monthEndISO(mk)) return;
-      var rentAmount = rentForMonth(r, mk);
+      var plan = planFor(r, mk);
+      var rentAmount = plan.rent;
       var fresh = {
         id: uid('pay'), residentId: r.id, month: mk, rent: rentAmount,
+        pro: plan.mode === 'prorated' ? plan : null,
         electricity: null, electricityManual: false, due: rentAmount,
         receipts: [], createdAt: new Date().toISOString()
       };
@@ -1445,29 +1621,35 @@ function fillTemplate(vars) {
     return '';
   });
 }
+/* Values available to the WhatsApp template, for one resident and one due. */
+function waVars(r, p, dateOverride) {
+  var room = r ? roomById(r.roomId) : null;
+  var dueDay = clamp(num(db.settings.dueDay || 5), 1, 28);
+  var mk = (p && p.month) || thisMonth();
+  var dueDate = dateOverride || ((p && (isOverdue(p) || p.month < thisMonth())) ? todayISO() : mk + '-' + pad2(dueDay));
+  var pro = p ? proOf(p) : null;
+  return {
+    name: r ? r.name : '',
+    first: String((r && r.name) || '').split(' ')[0],
+    balance: p ? groupNum(balanceOf(p)) : '0',
+    rent: p ? groupNum(num(p.rent)) : '0',
+    electricity: !p ? '' : (p.electricity == null ? 'pending' : money(num(p.electricity))),
+    total: p ? groupNum(p.due) : '0',
+    month: fmtMonth(mk),
+    date: fmtDate(dueDate),
+    upi: db.settings.upi || 'ask the owner',
+    property: r ? propName(r.propertyId) : '',
+    room: room ? String(room.number) : '',
+    bed: r ? ((bedById(r.bedId) || {}).label || '') : '',
+    owner: db.settings.ownerName || 'Hostel Manager',
+    days: pro ? pro.days + ' of ' + pro.basisDays + ' days' : '',
+    perday: pro ? moneyPaise(pro.perDay / 100) : ''
+  };
+}
 function reminderText(p) {
   var r = residentById(p.residentId);
   if (!r) return '';
-  var room = roomById(r.roomId);
-  var dueDay = clamp(num(db.settings.dueDay || 5), 1, 28);
-  var dueDate = (isOverdue(p) || p.month < thisMonth())
-    ? todayISO()
-    : p.month + '-' + pad2(dueDay);
-  return fillTemplate({
-    name: r.name,
-    first: String(r.name || '').split(' ')[0],
-    balance: groupNum(balanceOf(p)),
-    rent: groupNum(num(p.rent)),
-    electricity: p.electricity == null ? 'pending' : money(num(p.electricity)),
-    total: groupNum(p.due),
-    month: fmtMonth(p.month),
-    date: fmtDate(dueDate),
-    upi: db.settings.upi || 'ask the owner',
-    property: propName(r.propertyId),
-    room: room ? String(room.number) : '',
-    bed: (bedById(r.bedId) || {}).label || '',
-    owner: db.settings.ownerName || 'Hostel Manager'
-  });
+  return fillTemplate(waVars(r, p));
 }
 
 /* ===========================================================================
@@ -1505,8 +1687,31 @@ function vacateResident(resident, vacatingDate, refundAmount, refundDate, keepDu
       return paidOf(p) > 0;
     });
   }
+  // Mid-month leaving: follow the hostel's "charge the full month" setting.
+  var cfg = midSettings(resident.propertyId);
+  var leftMidMonth = dayOfMonth(resident.vacatingDate) > 0 && dayOfMonth(resident.vacatingDate) < daysInMonth(vacMk);
+  resident.lastMonth = null;
+  var joinMk = String(resident.joiningDate || '').slice(0, 7);
+  if (joinMk === vacMk && resident.firstMonth && !resident.firstMonth.edited) {
+    resident.firstMonth.days = stayDaysInMonth(resident, vacMk);
+    resident.firstMonth.rent = null;
+  }
+  if (!cfg.chargeFullOnLeave && leftMidMonth) {
+    resident.lastMonth = { month: vacMk, mode: 'prorated', days: stayDaysInMonth(resident, vacMk), rent: null, edited: false };
+  }
+  var touched = 0;
+  db.payments.forEach(function (p) {
+    if (p.residentId !== resident.id || p.month !== vacMk) return;
+    var plan = planFor(resident, p.month);
+    if (plan.rent === p.rent && !p.pro) return;
+    p.rent = plan.rent;
+    p.pro = plan.mode === 'prorated' ? plan : null;
+    syncPayment(p);
+    touched++;
+  });
   save();
   syncElectricity();
+  return { month: vacMk, changed: touched, prorated: !!(resident.lastMonth) };
 }
 
 function deleteResidentDeep(resident) {
@@ -1605,7 +1810,8 @@ var ui = {
   settingsReturn: null,
   scrollMemo: {},
   restoreScroll: false,
-  elecEdit: false
+  elecEdit: false,
+  midWarn: null
 };
 
 var TABS = [
@@ -2047,6 +2253,7 @@ function renderResidentProfile(id) {
       '<div style="font-size:22px;font-weight:750;letter-spacing:-.6px;margin-top:2px" class="t-num">' + money(due ? balanceOf(due) : 0) + ' <span style="font-size:13px;font-weight:600;color:var(--muted)">due</span></div></div>' +
       (due ? statusBadge(due) : '<span class="badge neutral">No due</span>') + '</div>' +
       (due ? '<div class="small muted" style="margin-top:4px">' + esc(fmtMonth(due.month)) + ' \u00B7 ' + money(paidOf(due)) + ' paid of ' + money(due.due) + '</div>' : '') +
+      (due && proOf(due) ? '<div class="small muted" style="margin-top:2px">Pro-rated: ' + esc(proLine(proOf(due))) + ' \u00B7 ' + money(num(due.rent)) + '</div>' : '') +
       (owed > 0 ? '<div class="small" style="margin-top:6px;color:var(--red);font-weight:650">Total pending across all months: ' + money(owed) + '</div>' : '<div class="small" style="margin-top:6px;color:var(--green);font-weight:650">All rent paid up</div>') +
       (due ? '<button class="btn block" style="margin-top:13px" data-act="open-due" data-id="' + attr(due.id) + '">' + icon('rupee', 18) + ' Record payment</button>' : '') +
       '</div>';
@@ -2288,7 +2495,15 @@ function reminderForResident(r) {
     month: monthLabel, date: fmtDate(dueDate),
     upi: db.settings.upi || 'ask the owner',
     property: propName(r.propertyId), room: room ? room.number : '', bed: bed ? bed.label : '',
-    owner: db.settings.ownerName || 'Hostel Manager'
+    owner: db.settings.ownerName || 'Hostel Manager',
+    days: (function () {
+      var pro = dues.map(proOf).filter(Boolean)[0];
+      return pro ? pro.days + ' of ' + pro.basisDays + ' days' : '';
+    })(),
+    perday: (function () {
+      var pro = dues.map(proOf).filter(Boolean)[0];
+      return pro ? moneyPaise(pro.perDay / 100) : '';
+    })()
   });
   return { res: r, dues: dues, total: total, text: text, overdue: overdue, oldest: dues[0].month };
 }
@@ -2968,6 +3183,7 @@ function applyRentFrom(resId, fromMonth, newRent) {
     syncPayment(p);
     touched++;
   });
+  recalcProDues({ silent: true });
   save();
   return touched;
 }
@@ -2977,7 +3193,8 @@ function newDraft() {
     photo: '', propertyId: (ui.prop !== 'all' ? ui.prop : db.properties[0].id), roomId: '', bedId: '',
     joiningDate: todayISO(), rent: propertyRent(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
     depositAmount: propertyAdvance(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
-    depositReceived: false, notes: ''
+    depositReceived: false, notes: '',
+    firstMode: 'prorated', firstDays: '', firstRent: '', firstEdited: false
   };
 }
 function openResidentWizard(id, bedId) {
@@ -2991,7 +3208,11 @@ function openResidentWizard(id, bedId) {
         college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: r.idNumber || '', photo: r.photo || '',
         propertyId: r.propertyId, roomId: r.roomId || '', bedId: r.bedId || '', joiningDate: r.joiningDate || todayISO(),
         rent: num(r.rent), depositAmount: num(r.depositAmount),
-        depositReceived: !!r.depositReceived, notes: r.notes || '', rentFrom: thisMonth()
+        depositReceived: !!r.depositReceived, notes: r.notes || '', rentFrom: thisMonth(),
+        firstMode: (r.firstMonth && r.firstMonth.mode === 'full') ? 'full' : 'prorated',
+        firstDays: r.firstMonth && r.firstMonth.days != null ? r.firstMonth.days : '',
+        firstRent: r.firstMonth && r.firstMonth.rent != null ? r.firstMonth.rent : '',
+        firstEdited: !!(r.firstMonth && r.firstMonth.edited)
       }
     };
   } else {
@@ -3012,6 +3233,64 @@ function openResidentWizard(id, bedId) {
     ui.wizard = { mode: 'add', id: null, step: 0, status: 'Active', data: d };
   }
   openSheet('resident');
+}
+
+/* Plan for the wizard's draft resident (joining month). */
+function draftFirstMonth(data) {
+  var mk = String(data.joiningDate || todayISO()).slice(0, 7);
+  var pseudo = {
+    propertyId: data.propertyId, joiningDate: data.joiningDate, rent: num(data.rent), status: 'Active',
+    firstMonth: {
+      month: mk, mode: data.firstMode === 'full' ? 'full' : 'prorated',
+      days: data.firstDays === '' || data.firstDays == null ? null : num(data.firstDays),
+      rent: data.firstRent === '' || data.firstRent == null ? null : num(data.firstRent),
+      edited: !!data.firstEdited
+    }
+  };
+  return planFor(pseudo, mk);
+}
+/* The breakdown card + Pro-rate / Full month choice in step 3. */
+function firstMonthBlock(data) {
+  var mk = String(data.joiningDate || todayISO()).slice(0, 7);
+  var cfg = midSettings(data.propertyId);
+  var full = num(data.rent);
+  var joinDay = dayOfMonth(data.joiningDate);
+  var plan = draftFirstMonth(data);
+  var mode = data.firstMode === 'full' ? 'full' : 'prorated';
+  if (!full || !joinDay || (joinDay <= 1 && mode !== 'full')) {
+    return '<div class="field"><div class="pro-card">' +
+      '<div class="row-between"><span class="semi">First month</span><span class="badge neutral">Full month</span></div>' +
+      '<div class="pro-line">Joined on the 1st, so the whole month is charged.</div>' +
+      '<div class="pro-total"><span class="semi">First month rent</span><span class="semi t-num">' + money(full) + '</span></div>' +
+      '</div></div>';
+  }
+  var basisLabel = cfg.basis === 'actual' ? 'actual days in ' + fmtMonth(mk) : '30 days';
+  var dayNote = plan.days + (plan.days === 1 ? ' day' : ' days') +
+    (cfg.countJoinDay ? ' (counting joining day)' : ' (joining day not counted)');
+  var head = '<div class="row-between"><span class="semi">First month</span>' +
+    '<span class="badge ' + (mode === 'full' ? 'neutral' : 'navy') + '">' + (mode === 'full' ? 'Full month' : 'Pro-rated') + '</span></div>';
+  var lines = mode === 'full'
+    ? '<div class="pro-line">Full monthly rent is charged for ' + esc(fmtMonth(mk)) + '.</div>'
+    : '<div class="pro-line">Rent ' + money(full) + ' \u00F7 ' + basisLabel + ' = <b>' + moneyPaise(plan.perDay / 100) + '</b> per day</div>' +
+      '<div class="pro-line">Joined ' + joinDay + ' ' + esc(fmtMonthShort(mk)) + ' \u00B7 ' + dayNote + '</div>' +
+      (plan.days >= plan.basisDays ? '<div class="pro-line">That covers the whole month, so the full rent applies.</div>' : '');
+  var card = '<div class="pro-card">' + head + lines +
+    '<div class="pro-total"><span class="semi">First month rent</span><span class="semi t-num">' + money(plan.rent) + '</span>' +
+    (plan.edited ? '<span class="badge partial" style="margin-left:6px">edited</span>' : '') + '</div>' +
+    '</div>';
+  var chips = '<div class="choice-grid" data-group="firstMode">' +
+    '<button type="button" class="choice" data-act="pick" data-group="firstMode" data-value="prorated" aria-pressed="' + (mode === 'prorated' ? 'true' : 'false') + '">Pro-rate</button>' +
+    '<button type="button" class="choice" data-act="pick" data-group="firstMode" data-value="full" aria-pressed="' + (mode === 'full' ? 'true' : 'false') + '">Full month</button>' +
+    '</div><input type="hidden" name="firstMode" value="' + attr(mode) + '">' +
+    '<div class="field-hint">Pro-rate is the default. Choose Full month to charge the whole month.</div>';
+  var editors = mode === 'full' ? '' :
+    '<div class="form-grid" style="margin-top:2px">' +
+    '<div class="field"><label>Days charged</label><input class="input" name="firstDays" inputmode="numeric" value="' + plan.days + '" data-act-change="wiz-days"><div class="field-error"></div></div>' +
+    '<div class="field"><label>First month rent</label><div class="inline-input has-prefix"><span class="prefix">\u20B9</span>' +
+    '<input class="input" name="firstRent" inputmode="numeric" value="' + plan.rent + '" data-act-change="wiz-first-rent"></div><div class="field-error"></div></div>' +
+    '</div>' +
+    (plan.edited ? '<div style="margin-top:-4px"><button type="button" class="tiny" style="color:var(--navy);font-weight:700;min-height:34px" data-act="wiz-first-reset">Use the calculated amount</button></div>' : '');
+  return '<div class="field">' + card + chips + editors + '</div>';
 }
 
 function wizBody(data, step) {
@@ -3068,16 +3347,16 @@ function wizBody(data, step) {
       '<div class="field"><label>Bed <span style="color:var(--red)">*</span></label><select class="select" name="bedId"' + (bedCount ? '' : ' disabled') + '>' + (bedCount ? bedOpts : '<option value="">No vacant beds</option>') + '</select><div class="field-error"></div></div>' +
       (room ? '<div class="card tight" style="background:#F7F9FD;box-shadow:none;margin-bottom:14px"><div class="row-between"><span class="small muted bold">Rent per bed</span><span class="semi t-num">' + money(room.rent) + '</span></div>' +
         '<div class="small muted" style="margin-top:2px">' + (bedCount ? bedCount + ' bed' + (bedCount > 1 ? 's' : '') + ' available in this room' : 'This room is full \u2014 choose another room') + '</div></div>' : '') +
-      '<div class="field"><label>Joining date <span style="color:var(--red)">*</span></label><input class="input" type="date" name="joiningDate" value="' + attr(data.joiningDate) + '"><div class="field-error"></div></div>';
+      '<div class="field"><label>Joining date <span style="color:var(--red)">*</span></label><input class="input" type="date" name="joiningDate" data-act-change="wiz-join" value="' + attr(data.joiningDate) + '"><div class="field-error"></div></div>';
   }
   return '<div class="field"><label>Monthly rent <span style="color:var(--red)">*</span></label>' +
-    '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="rent" inputmode="numeric" value="' + (data.rent === '' ? '' : num(data.rent)) + '"></div>' +
+    '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="rent" inputmode="numeric" data-act-change="wiz-rent" value="' + (data.rent === '' ? '' : num(data.rent)) + '"></div>' +
     '<div class="field-error"></div><div class="field-hint">Usually the room rent. You can change it for this resident.</div></div>' +
     (ui.wizard.mode === 'edit'
       ? '<div class="field"><label>Apply a rent change from</label><select class="select" name="rentFrom">' + rentMonthOptions(data.rentFrom) + '</select>' +
         '<div class="field-hint">Only used when the rent above is different. Earlier months keep the old rent.</div></div>'
       : '') +
-    '<div class="field-hint">Full monthly rent is charged for the joining month too.</div>' +
+    firstMonthBlock(data) +
     '<div class="form-grid">' +
     '<div class="field"><label>Security deposit</label><div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="depositAmount" inputmode="numeric" value="' + (data.depositAmount === '' ? '' : num(data.depositAmount)) + '" placeholder="0"></div></div>' +
     '<div class="field"><label>&nbsp;</label><label class="deposit-check">' +
@@ -3117,7 +3396,7 @@ function captureWizard() {
   var form = $('#sheetLayer form');
   if (!form || !ui.wizard) return;
   var d = ui.wizard.data;
-  ['name', 'phone', 'guardianName', 'guardianPhone', 'college', 'idType', 'idNumber', 'propertyId', 'roomId', 'bedId', 'joiningDate', 'rent', 'depositAmount', 'notes', 'rentFrom'].forEach(function (k) {
+  ['name', 'phone', 'guardianName', 'guardianPhone', 'college', 'idType', 'idNumber', 'propertyId', 'roomId', 'bedId', 'joiningDate', 'rent', 'depositAmount', 'notes', 'rentFrom', 'firstMode', 'firstDays', 'firstRent'].forEach(function (k) {
     var el = form.elements[k];
     if (el) d[k] = el.value;
   });
@@ -3208,12 +3487,22 @@ function saveResidentForm(form) {
   if (!bedId) roomId = '';
 
   var joining = w.data.joiningDate || todayISO();
+  var joinMk = String(joining).slice(0, 7);
+  var firstPlan = draftFirstMonth(Object.assign({}, w.data, { joiningDate: joining, rent: rent }));
+  var firstMode = w.data.firstMode === 'full' ? 'full' : 'prorated';
+  var firstMonth = dayOfMonth(joining) <= 1 ? null : {
+    month: joinMk,
+    mode: firstMode,
+    days: firstMode === 'full' ? null : firstPlan.days,
+    rent: (firstMode === 'prorated' && firstPlan.edited) ? firstPlan.rent : null,
+    edited: firstMode === 'prorated' ? !!firstPlan.edited : false
+  };
   var fields = {
     name: w.data.name.trim(), phone: cleanPhone(w.data.phone), guardianName: w.data.guardianName.trim(),
     guardianPhone: cleanPhone(w.data.guardianPhone), college: w.data.college.trim(),
     idType: w.data.idType, idNumber: w.data.idNumber.trim(), photo: w.data.photo || '',
     propertyId: w.data.propertyId, roomId: roomId, bedId: bedId,
-    joiningDate: joining, rent: rent,
+    joiningDate: joining, rent: rent, firstMonth: firstMonth,
     depositAmount: deposit, depositReceived: !!w.data.depositReceived,
     notes: w.data.notes.trim()
   };
@@ -3280,7 +3569,9 @@ function sheetPayment(params) {
     '<div class="fig balance' + (bal === 0 ? ' zero' : '') + '" style="text-align:right"><div class="fk">Balance</div><div class="fv t-num">' + money(bal) + '</div></div>' +
     '</div>' +
     '<div style="border-top:1px dashed #E2E8F0;margin-top:8px;padding-top:2px">' +
-    '<div class="kv"><div class="k">Rent</div><div class="v t-num">' + money(num(p.rent)) + '</div></div>' +
+    '<div class="kv"><div class="k">Rent' + (proOf(p)
+      ? '<br><span class="tiny muted">' + esc(proLine(proOf(p))) + (proOf(p).edited ? ' \u00B7 edited' : '') + '</span>'
+      : '') + '</div><div class="v t-num">' + money(num(p.rent)) + '</div></div>' +
     '<div class="kv"><div class="k">Electricity</div><div class="v t-num">' +
     (p.electricity == null
       ? '<span class="badge partial">Pending</span>'
@@ -3322,7 +3613,7 @@ function sheetPayment(params) {
         '</form>'
       : '<div class="card tight" style="background:var(--green-bg);box-shadow:none;margin-bottom:10px"><div class="row" style="gap:8px;color:#047857">' + icon('checkCircle', 20) +
         '<div class="semi" style="font-size:14px">This month is fully paid.</div></div></div>') +
-    (r ? waButton(r, fillTemplate({ name: r.name, first: String(r.name).split(' ')[0], balance: groupNum(bal), rent: groupNum(num(p.rent)), electricity: p.electricity == null ? 'pending' : money(num(p.electricity)), total: groupNum(p.due), month: fmtMonth(p.month), date: fmtDate(p.month + '-' + pad2(num(db.settings.dueDay || 5))), upi: db.settings.upi || '', property: propName(r.propertyId), room: room ? room.number : '', bed: bed ? bed.label : '', owner: db.settings.ownerName || '' }), { cls: 'btn wa block', iconSize: 19, label: 'Send WhatsApp to ' + String(r.name).split(' ')[0], style: 'margin-top:4px' }) : '') +
+    (r ? waButton(r, fillTemplate(waVars(r, p)), { cls: 'btn wa block', iconSize: 19, label: 'Send WhatsApp to ' + String(r.name).split(' ')[0], style: 'margin-top:4px' }) : '') +
     '<div style="height:10px"></div></div>';
   var foot = bal > 0
     ? '<div class="sheet-foot"><button class="btn block" data-act="save-payment">' + icon('check', 19) + ' Save payment</button></div>'
@@ -3421,6 +3712,7 @@ function sheetVacate(params) {
     '<div class="card tight" style="background:#F7F9FD;box-shadow:none;margin-bottom:14px">' +
     '<div class="row-between"><span class="small muted bold">Bed to free</span><span class="semi">' + (room ? 'Room ' + esc(room.number) : '') + ' \u00B7 ' + esc((bedById(r.bedId) || {}).label || '\u2014') + '</span></div>' +
     '<div class="small muted" style="margin-top:6px">Future rent dues will stop from next month. All history stays saved.</div>' +
+    '<div class="small" style="margin-top:6px;color:var(--ink-2)">' + lastMonthNote(r) + '</div>' +
     (owed > 0 ? '<div class="small" style="margin-top:6px;color:var(--red);font-weight:650">' + money(owed) + ' rent is still unpaid.</div>' : '') +
     '</div>' +
     '<div class="field"><label>Vacating date</label><input class="input" type="date" name="vacatingDate" value="' + todayISO() + '"><div class="field-error"></div></div>' +
@@ -3434,6 +3726,16 @@ function sheetVacate(params) {
   return sheetShell({ title: 'Vacate ' + esc(r.name), sub: 'Free the bed and close the stay', body: body });
 }
 
+/* What the last month will be charged, shown in the vacate sheet. */
+function lastMonthNote(r) {
+  var cfg = midSettings(r.propertyId);
+  var basis = basisDaysFor(r.propertyId, thisMonth());
+  var perDay = perDayPaise(num(r.rent), basis);
+  if (cfg.chargeFullOnLeave) {
+    return 'Leaves mid-month are charged the full month (Settings \u2192 ' + esc(propName(r.propertyId)) + ').';
+  }
+  return 'Mid-month leave is charged by days stayed: ' + moneyPaise(perDay / 100) + ' per day, capped at ' + money(num(r.rent)) + '.';
+}
 function saveVacateForm(form) {
   clearErrors(form);
   var r = residentById(val(form, 'id'));
@@ -3489,9 +3791,9 @@ function sheetElecBill(params) {
     '<div class="field"><label>Bill amount</label>' +
     '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="amount" inputmode="numeric" value="' + (bill ? num(bill.amount) : '') + '"></div>' +
     '<div class="field-error"></div>' +
-    '<div class="field-hint">' + (share
+    '<div class="field-hint">' + (electricityShareHint(propId, month) || (share
       ? 'About ' + money(share) + ' each. You can edit one person\u2019s share later.'
-      : 'Each resident gets an equal share, rounded to the rupee.') + '</div></div>' +
+      : 'Each resident gets an equal share, rounded to the rupee.')) + '</div></div>' +
     '<div style="height:4px"></div></div>' +
     '<div class="sheet-foot"><button class="btn block" type="submit">' + (bill ? 'Save bill' : 'Split the bill') + '</button>' +
     (bill ? '<button type="button" class="btn ghost block" style="margin-top:8px" data-act="delete-elec-bill" data-id="' + attr(bill.id) + '">Remove this bill</button>' : '') +
@@ -3641,7 +3943,7 @@ function renderSettings() {
     '<div class="field"><label>WhatsApp reminder message</label>' +
     '<textarea class="textarea" name="waTemplate" id="waTemplate" rows="4" style="min-height:104px">' + esc(s.waTemplate) + '</textarea>' +
     '<div class="wrap" style="margin-top:8px">' +
-    ['{name}', '{balance}', '{rent}', '{electricity}', '{total}', '{month}', '{date}', '{upi}', '{property}', '{room}', '{owner}'].map(function (t) {
+    ['{name}', '{balance}', '{rent}', '{electricity}', '{total}', '{month}', '{date}', '{days}', '{perday}', '{upi}', '{property}', '{room}', '{owner}'].map(function (t) {
       return '<button type="button" class="badge navy" style="border:0;min-height:34px;font-size:12px" data-act="insert-token" data-token="' + attr(t) + '">' + esc(t) + '</button>';
     }).join('') +
     '</div>' +
@@ -3655,6 +3957,12 @@ function renderSettings() {
 
 
   h += '<div class="set-label">Hostel settings</div>' +
+    (ui.midWarn
+      ? '<div class="card tight" style="background:#FFF7E6;border:1px solid #F6D9A0;box-shadow:none;margin-bottom:10px">' +
+        '<div class="row" style="gap:9px;align-items:flex-start">' + icon('alert', 18) +
+        '<div class="small" style="line-height:1.5">' + ui.midWarn + '</div></div>' +
+        '<button type="button" class="tiny" style="color:var(--navy);font-weight:700;min-height:36px;margin-top:4px" data-act="dismiss-mid-warn">Got it</button></div>'
+      : '') +
     '<form data-form="hostelSettings">' +
     db.properties.map(function (prop) {
       var cfg = propElectricity(prop.id);
@@ -3674,6 +3982,7 @@ function renderSettings() {
         '<div class="field-hint">' + (cfg.mode === 'split'
           ? 'Used only if you switch to fixed. One bill for the hostel each month is split equally \u2014 add it from Payments.' + (splitBill ? ' This month: ' + money(splitBill.amount) + '.' : '')
           : 'Added to every monthly due for this hostel.') + '</div></div>' +
+        midMonthFields(prop) +
         '</div>';
     }).join('') +
     '<button class="btn block" type="submit">Save hostel settings</button>' +
@@ -3729,6 +4038,44 @@ function renderSettings() {
   h += '</div>';
   return h;
 }
+/* Five per-hostel choices for mid-month joining and leaving. */
+function midMonthFields(prop) {
+  var mid = midSettings(prop.id);
+  var m = prop.id;
+  var chip = function (group, value, label, pressed) {
+    return '<button type="button" class="choice" data-act="pick" data-group="' + group + '_' + m + '" data-value="' + value +
+      '" aria-pressed="' + (pressed ? 'true' : 'false') + '" style="min-height:44px;font-size:12.5px;line-height:1.25">' + label + '</button>';
+  };
+  var block = function (group, label, cols, inner, hiddenValue, hint) {
+    return '<div class="field"><div class="small bold" style="margin-bottom:6px">' + label + '</div>' +
+      '<div class="' + (cols === 3 ? 'mode-chips' : 'choice-grid') + '" data-group="' + group + '_' + m + '">' + inner + '</div>' +
+      '<input type="hidden" name="' + group + '_' + m + '" value="' + hiddenValue + '">' +
+      (hint ? '<div class="field-hint">' + hint + '</div>' : '') + '</div>';
+  };
+  var perDay = moneyPaise(perDayPaise(num(prop.rent), mid.basis === 'actual' ? daysInMonth(thisMonth()) : 30) / 100);
+  return '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">' +
+    '<div class="small bold" style="margin-bottom:2px">Mid-month joining and leaving</div>' +
+    block('basis', 'Day rate basis', 2,
+      chip('basis', 'fixed30', 'Fixed 30 days', mid.basis !== 'actual') +
+      chip('basis', 'actual', 'Actual days in the month', mid.basis === 'actual'),
+      mid.basis, 'Per day now: ' + perDay + ' (rent \u00F7 ' + (mid.basis === 'actual' ? 'days in the month' : '30') + ').') +
+    block('joinDay', 'Count the joining day', 2,
+      chip('joinDay', 'yes', 'Yes', mid.countJoinDay) + chip('joinDay', 'no', 'No', !mid.countJoinDay),
+      mid.countJoinDay ? 'yes' : 'no', 'The joining day itself is charged in the first month.') +
+    block('rounding', 'Rounding', 3,
+      chip('rounding', 'nearest', 'Nearest rupee', mid.rounding === 'nearest') +
+      chip('rounding', 'up', 'Round up', mid.rounding === 'up') +
+      chip('rounding', 'down', 'Round down', mid.rounding === 'down'),
+      mid.rounding, 'How a part-month rent is rounded.') +
+    block('prorateElec', 'Pro-rate electricity for mid-month joiners', 2,
+      chip('prorateElec', 'yes', 'Yes', mid.prorateElec) + chip('prorateElec', 'no', 'No \u2014 full share', !mid.prorateElec),
+      mid.prorateElec ? 'yes' : 'no', 'A split bill is shared by days stayed; a fixed amount is cut to the days stayed.') +
+    block('fullOnLeave', 'Charge the full month if a resident leaves mid-month', 2,
+      chip('fullOnLeave', 'yes', 'Yes \u2014 full month', mid.chargeFullOnLeave) + chip('fullOnLeave', 'no', 'No \u2014 pro-rate', !mid.chargeFullOnLeave),
+      mid.chargeFullOnLeave ? 'yes' : 'no', 'When No, the leaving month is charged by days stayed.') +
+    '</div>';
+}
+
 function saveHostelSettings(form) {
   clearErrors(form);
   var ok = true;
@@ -3746,19 +4093,34 @@ function saveHostelSettings(form) {
     prop.rent = rent;
     prop.advance = advance;
     prop.electricity = { mode: mode, amount: amount };
+    var basis = val(form, 'basis_' + prop.id);
+    var rounding = val(form, 'rounding_' + prop.id);
+    prop.midMonth = {
+      basis: basis === 'actual' ? 'actual' : 'fixed30',
+      countJoinDay: val(form, 'joinDay_' + prop.id) !== 'no',
+      rounding: (rounding === 'up' || rounding === 'down') ? rounding : 'nearest',
+      prorateElec: val(form, 'prorateElec_' + prop.id) === 'yes',
+      chargeFullOnLeave: val(form, 'fullOnLeave_' + prop.id) !== 'no'
+    };
   });
   if (!ok) return;
-  syncElectricity();
+  var rec = recalcProDues();
   save();
   render();
-  toast('Hostel settings saved', 'good');
+  var bits = [];
+  if (rec.changed) bits.push(rec.changed + (rec.changed === 1 ? ' due updated' : ' dues updated'));
+  ui.midWarn = rec.skipped
+    ? rec.skipped + (rec.skipped === 1 ? ' due already has' : ' dues already have') + ' payments, so ' + (rec.skipped === 1 ? 'it was' : 'they were') + ' left unchanged. Remove the receipt first if you want ' + (rec.skipped === 1 ? 'it' : 'them') + ' recalculated.'
+    : null;
+  if (rec.skipped) render();
+  toast(rec.skipped ? 'Saved \u00B7 ' + rec.skipped + ' due' + (rec.skipped > 1 ? 's' : '') + ' left as they were' : ('Hostel settings saved' + (bits.length ? ' \u00B7 ' + bits[0] : '')), rec.skipped ? 'bad' : 'good');
 }
 function previewTemplate(tpl, upi) {
   return fillTemplateWith(tpl, {
     name: 'Anjali Ramesh', first: 'Anjali', balance: '5,750', rent: '5,500', electricity: '\u20B9250', total: '5,750',
     month: fmtMonth(thisMonth()), date: fmtDate(thisMonth() + '-' + pad2(clamp(num(db.settings.dueDay || 5), 1, 28))),
     upi: upi || 'ask the owner', property: propName(db.properties[0].id), room: '101', bed: 'Bed 1',
-    owner: db.settings.ownerName || 'Hostel Manager'
+    owner: db.settings.ownerName || 'Hostel Manager', days: '11 of 30 days', perday: '\u20B9216.67'
   });
 }
 function fillTemplateWith(tpl, vars) {
@@ -4620,7 +4982,9 @@ function receiptMessage(info) {
   var tail = info.balance > 0 ? 'Balance left: ' + money(info.balance) + '.' : 'All dues cleared.';
   var split = '';
   if (p) {
-    split = ' (Rent ' + money(num(p.rent)) + (p.electricity == null ? ', electricity pending' : ' + Electricity ' + money(num(p.electricity))) + ' = ' + money(p.due) + ')';
+    var pro = proOf(p);
+    split = ' (Rent ' + money(num(p.rent)) + (pro ? ' for ' + proLine(pro) : '') +
+      (p.electricity == null ? ', electricity pending' : ' + Electricity ' + money(num(p.electricity))) + ' = ' + money(p.due) + ')';
   }
   return 'Hello ' + (r ? r.name : '') + ', we received ' + money(info.amount) + ' for ' + fmtMonth(info.month) +
     ' dues' + split + ' on ' + fmtDate(info.date) + '. ' + tail + ' Thank you \u2014 ' + owner + '.';
@@ -4641,7 +5005,8 @@ function sheetReceipt() {
     '<div class="kv"><div class="k">Resident</div><div class="v">' + esc(r ? r.name : '\u2014') + '</div></div>' +
     '<div class="kv"><div class="k">Received</div><div class="v t-num">' + money(info.amount) + ' \u00B7 ' + esc(info.mode) + '</div></div>' +
     '<div class="kv"><div class="k">Month</div><div class="v">' + esc(fmtMonth(info.month)) + '</div></div>' +
-    (rcPay ? '<div class="kv"><div class="k">Rent</div><div class="v t-num">' + money(num(rcPay.rent)) + '</div></div>' +
+    (rcPay ? '<div class="kv"><div class="k">Rent' + (proOf(rcPay)
+        ? ' <span class="tiny muted">(' + esc(proLine(proOf(rcPay))) + ')</span>' : '') + '</div><div class="v t-num">' + money(num(rcPay.rent)) + '</div></div>' +
       '<div class="kv"><div class="k">Electricity</div><div class="v t-num">' + (rcPay.electricity == null ? 'Pending' : money(num(rcPay.electricity))) + '</div></div>' +
       '<div class="kv"><div class="k">Month total</div><div class="v t-num">' + money(rcPay.due) + '</div></div>' : '') +
     '<div class="kv"><div class="k">Balance left</div><div class="v t-num" style="color:' + (info.balance > 0 ? 'var(--red)' : 'var(--green)') + '">' + (info.balance > 0 ? money(info.balance) : 'Fully paid') + '</div></div>' +
@@ -5007,6 +5372,12 @@ document.addEventListener('click', function (e) {
           var bedsField = $('#sheetLayer input[name="beds"]');
           if (bedsField) bedsField.value = value;
         }
+        if (group === 'firstMode' && ui.wizard) {
+          captureWizard();
+          ui.wizard.data.firstMode = value;
+          if (value === 'full') { ui.wizard.data.firstEdited = false; ui.wizard.data.firstDays = ''; ui.wizard.data.firstRent = ''; }
+          renderSheet();
+        }
         break;
       }
       case 'fill-amount': {
@@ -5018,6 +5389,17 @@ document.addEventListener('click', function (e) {
         }
         break;
       }
+      case 'dismiss-mid-warn':
+        ui.midWarn = null;
+        render();
+        break;
+      case 'wiz-first-reset':
+        captureWizard();
+        ui.wizard.data.firstEdited = false;
+        ui.wizard.data.firstDays = '';
+        ui.wizard.data.firstRent = '';
+        renderSheet();
+        break;
       case 'close-sheet':
         closeSheet();
         break;
@@ -5164,6 +5546,25 @@ document.addEventListener('change', function (e) {
     ui.wizard.data.bedId = '';
     var room = roomById(el.value);
     if (room && (!ui.wizard.data.rent || num(ui.wizard.data.rent) === 0)) ui.wizard.data.rent = room.rent;
+    renderSheet();
+  } else if (change === 'wiz-rent') {
+    captureWizard();
+    if (!ui.wizard.data.firstEdited) { ui.wizard.data.firstDays = ''; ui.wizard.data.firstRent = ''; }
+    renderSheet();
+  } else if (change === 'wiz-join') {
+    captureWizard();
+    if (!ui.wizard.data.firstEdited) { ui.wizard.data.firstDays = ''; ui.wizard.data.firstRent = ''; }
+    renderSheet();
+  } else if (change === 'wiz-days') {
+    captureWizard();
+    ui.wizard.data.firstDays = el.value;
+    ui.wizard.data.firstRent = '';
+    ui.wizard.data.firstEdited = true;
+    renderSheet();
+  } else if (change === 'wiz-first-rent') {
+    captureWizard();
+    ui.wizard.data.firstRent = el.value;
+    ui.wizard.data.firstEdited = true;
     renderSheet();
   } else if (change === 'wiz-photo') {
     var f = el.files && el.files[0];
