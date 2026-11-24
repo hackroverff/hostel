@@ -48,16 +48,15 @@ function helpers(w) {
   const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40));
   return { w, d, q, qa, click, act, submit, change, db, settle };
 }
-async function pinEntry(h, digits) {
-  for (const ch of String(digits)) h.click(h.q('.lock-key[data-digit="' + ch + '"]'));
-  await h.settle(240);
-}
 async function unlock(h) {
-  await h.settle(160);
-  if (!h.q('.lock-screen')) return;
-  await pinEntry(h, '1234');
-  await pinEntry(h, '1234');
-  await h.settle(160);
+  await h.settle(180);
+  if (!h.q('#authLayer.open')) return;
+  const form = h.q('#authLayer form[data-form="login"]');
+  form.elements['username'].value = 'owner';
+  form.elements['password'].value = 'hostel123';
+  if (form.elements['confirm']) form.elements['confirm'].value = 'hostel123';
+  h.submit(form);
+  await h.settle(700);
 }
 
 /* A small hostel: one room per distinct room label, each person on their own bed. */
@@ -348,10 +347,7 @@ async function addResident(h, opts) {
   /* ---------------------------------------------------------------- quick setup */
   {
     const h = helpers(makeDom(null).window);
-    await h.settle(160);
-    await pinEntry(h, '1234');
-    await pinEntry(h, '1234');
-    await h.settle(200);
+    await unlock(h);
     h.act('tab', '[data-tab="rooms"]');
     await h.settle();
     ok(/No rooms yet/.test(text(h.q('.screen'))), 'empty rooms screen shows the empty state');

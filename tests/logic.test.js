@@ -1,4 +1,4 @@
-/* Logic-focused jsdom tests: wizard, pro-rating, rollover, restore */
+/* Logic-focused jsdom tests: wizard, full-month joining rent, rollover, restore */
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -44,16 +44,16 @@ function helpers(w) {
   const settle = (ms) => new Promise((r) => setTimeout(r, ms || 30));
   return { w, d, q, qa, click, act, tap, submit, db, settle };
 }
-async function pinEntry(h, digits) {
-  for (const ch of String(digits)) h.click(h.q('.lock-key[data-digit="' + ch + '"]'));
-  await h.settle(240);
-}
-async function unlock(h) {
-  await h.settle(150);
-  if (!h.q('.lock-screen')) return;
-  await pinEntry(h, '1234');
-  await pinEntry(h, '1234');
-  await h.settle(150);
+async function unlock(h, opts) {
+  opts = opts || {};
+  await h.settle(180);
+  if (!h.q('#authLayer.open')) return;
+  const form = h.q('#authLayer form[data-form="login"]');
+  form.elements['username'].value = opts.username || 'owner';
+  form.elements['password'].value = opts.password || 'hostel123';
+  if (form.elements['confirm']) form.elements['confirm'].value = opts.password || 'hostel123';
+  h.submit(form);
+  await h.settle(700);
 }
 
 (async function () {
@@ -96,7 +96,7 @@ async function unlock(h) {
   ok(!!h.q('#sheetLayer select[name="roomId"]'), 'room select present');
   ok(!!h.q('#sheetLayer select[name="bedId"]'), 'bed select present');
 
-  // join on the 10th of this month so pro-rating matters (only if today >= 10)
+  // join on the 10th of this month: the full monthly rent is always charged
   const today = new Date();
   const joinDay = Math.min(10, today.getDate());
   const joinIso = thisMk() + '-' + pad(joinDay);
@@ -120,13 +120,10 @@ async function unlock(h) {
   form = h.q('#sheetLayer form[data-form="resident"]');
   ok(Number(form.elements['rent'].value) > 0, 'rent prefilled from room: ' + form.elements['rent'].value);
   const rentVal = Number(form.elements['rent'].value);
-  // pro-rate choice visible only when joining in current month before month end
-  const proBtn = h.q('#sheetLayer [data-group="proRate"]');
-  if (joinDay < dim(thisMk())) {
-    ok(!!proBtn, 'pro-rate choice shown for joining this month');
-    const labels = text(h.q('#sheetLayer [data-group="proRate"]'));
-    ok(/Pro-rate/.test(labels) && /Full month/.test(labels), 'both first-month options offered');
-  }
+  // pro-rating is gone: no first-month selector anywhere in the wizard
+  ok(!h.q('#sheetLayer [data-group="proRate"]'), 'no pro-rate / full-month selector');
+  ok(!h.q('#sheetLayer input[name="proRate"]'), 'the wizard carries no proRate field');
+  ok(/full monthly rent/i.test(text(h.q('#sheetLayer'))), 'the wizard says the full monthly rent applies');
   h.submit(form);
   await h.settle(80);
 
@@ -140,8 +137,9 @@ async function unlock(h) {
   ok(bed && bed.status === 'occupied' && bed.residentId === created.id, 'bed marked occupied');
   const due = data.payments.filter((p) => p.residentId === created.id && p.month === thisMk())[0];
   ok(!!due, 'due auto-created for joining month');
-  const expectedPro = Math.round((rentVal * (dim(thisMk()) - joinDay + 1)) / dim(thisMk()));
-  ok(due.due === expectedPro, 'first month pro-rated: ' + due.due + ' vs expected ' + expectedPro + ' (rent ' + rentVal + ')');
+  ok(due.due === rentVal, 'first month is charged the full rent: ' + due.due + ' vs rent ' + rentVal);
+  ok(due.rent === rentVal, 'the due keeps the full rent on the rent line');
+  ok(!('proRate' in created), 'the resident is saved without a proRate flag');
 
   // profile shown after add
   ok(/New Resident/.test(text(h.q('.profile-head'))), 'lands on new resident profile');

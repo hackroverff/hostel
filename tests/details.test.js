@@ -34,18 +34,35 @@ function boot(seed) {
   const submit = (f) => f.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
   const db = () => JSON.parse(w.localStorage.getItem('hostelManager.v1'));
   const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40));
-  const pinEntry = async (digits) => {
-    for (const ch of String(digits)) click(q('.lock-key[data-digit="' + ch + '"]'));
-    await settle(240);
-  };
   const unlock = async () => {
-    await settle(150);
-    if (!q('.lock-screen')) return;
-    await pinEntry('1234');
-    await pinEntry('1234');
-    await settle(150);
+    await settle(180);
+    if (!q('#authLayer.open')) return;
+    const form = q('#authLayer form[data-form="login"]');
+    form.elements['username'].value = 'owner';
+    form.elements['password'].value = 'hostel123';
+    if (form.elements['confirm']) form.elements['confirm'].value = 'hostel123';
+    submit(form);
+    await settle(700);
   };
-  return { w, d, q, qa, click, act, submit, db, settle, pinEntry, unlock };
+  return { w, d, q, qa, click, act, submit, db, settle, unlock };
+}
+
+/* A hostel holding exactly one resident in one room, for singular wording. */
+function oneResidentSeed() {
+  const db = JSON.parse(JSON.stringify(seedFixture()));
+  const room = db.rooms[0];
+  const bed = db.beds.find((b) => b.roomId === room.id);
+  const keep = db.residents.find((r) => r.bedId === bed.id) || db.residents[0];
+  bed.status = 'occupied';
+  bed.residentId = keep.id;
+  keep.bedId = bed.id;
+  keep.roomId = room.id;
+  db.residents = [keep];
+  db.rooms = [room];
+  db.beds = [bed];
+  db.payments = [];
+  db.expenses = [];
+  return db;
 }
 
 (async function () {
@@ -204,6 +221,86 @@ function boot(seed) {
   const remNames = t.qa('.rem-card .semi').map(text);
   ok(new Set(remNames).size === remNames.length, 'each resident appears once in reminders');
   ok(remNames.length > 0, 'reminder residents listed');
+
+  // ---------------------------------------------------------- layout details
+  const css = (el, prop) => (el ? t.w.getComputedStyle(el)[prop] : '');
+  t.act('tab', '[data-tab="home"]');
+  await t.settle();
+  t.act('settings');
+  await t.settle();
+
+  // settings rows stack a bold title over a grey description
+  const setRow = t.q('.set-row .grow');
+  ok(!!setRow, 'settings rows use a grow column');
+  ok(css(setRow, 'flexDirection') === 'column', 'settings title and description stack vertically');
+  ok(css(setRow, 'gap') === '2px', 'a 2px gap separates title and description: ' + css(setRow, 'gap'));
+  const setTitle = t.q('.set-row .grow .st');
+  const setDesc = t.q('.set-row .grow .ss');
+  ok(!!setTitle && !!setDesc, 'each row has a title and a description');
+  ok(css(setTitle, 'display') === 'block' && css(setDesc, 'display') === 'block', 'title and description are block level (no run-on text)');
+  ok(parseInt(css(setTitle, 'fontWeight'), 10) >= 600, 'the title is bold: ' + css(setTitle, 'fontWeight'));
+  ok(/On this phone/.test(text(t.q('.screen'))), 'settings has the storage row');
+
+  // singular / plural wording
+  const singles = boot(oneResidentSeed());
+  await singles.unlock();
+  singles.act('settings');
+  await singles.settle();
+  const storeTxt = text(singles.q('.screen'));
+  ok(/1 resident\b/.test(storeTxt), 'a single resident reads "1 resident": ' + (storeTxt.match(/[0-9]+ residents?/) || ['none'])[0]);
+  ok(!/1 residents\b/.test(storeTxt), 'never "1 residents"');
+  ok(/1 room\b/.test(storeTxt), 'a single room reads "1 room": ' + (storeTxt.match(/[0-9]+ rooms?/) || ['none'])[0]);
+  ok(!/1 rooms\b/.test(storeTxt), 'never "1 rooms"');
+  singles.act('tab', '[data-tab="rooms"]');
+  await singles.settle();
+  const roomsTxt = text(singles.q('.screen'));
+  ok(/1 room(?!s)/.test(roomsTxt), 'the rooms screen reads "1 room": ' + roomsTxt.slice(0, 120));
+  ok(!/1 rooms\b/.test(roomsTxt), 'the rooms screen never says "1 rooms"');
+
+  // the +91 prefix sits in its own box and never overlaps the digits
+  const phoneSeed = seedFixture();
+  const wizard = boot(phoneSeed);
+  await wizard.unlock();
+  wizard.act('tab', '[data-tab="residents"]');
+  await wizard.settle();
+  wizard.act('add-resident');
+  await wizard.settle();
+  const pre = wizard.q('.inline-input.has-prefix.wide-prefix .prefix');
+  ok(!!pre && text(pre) === '+91', 'the phone field shows a +91 prefix box');
+  ok(css(pre, 'position') === 'absolute', 'the prefix is positioned out of the text flow');
+  const phoneInput = wizard.q('.inline-input.wide-prefix input[name="phone"]');
+  ok(!!phoneInput, 'the phone input follows the prefix');
+  ok(css(phoneInput, 'paddingLeft') === '56px', 'the phone input is padded past the prefix: ' + css(phoneInput, 'paddingLeft'));
+  const preBox = wizard.q('.field .inline-input.wide-prefix');
+  ok(!!preBox, 'the phone field is wrapped so the prefix cannot collide');
+
+  // the security deposit "Received" checkbox is vertically centred with its label
+  const wizForm = wizard.q('#sheetLayer form[data-form="resident"]');
+  wizForm.elements['name'].value = 'Checkbox Person';
+  wizForm.elements['phone'].value = '9876500011';
+  wizard.act('wiz-next');
+  await wizard.settle(150);
+  const bedForm = wizard.q('#sheetLayer form[data-form="resident"]');
+  const freeRoom = Array.from(bedForm.elements['roomId'].options).find((o) => !o.disabled && o.value);
+  bedForm.elements['roomId'].value = freeRoom.value;
+  bedForm.elements['roomId'].dispatchEvent(new wizard.w.Event('change', { bubbles: true }));
+  await wizard.settle(150);
+  const bedForm2 = wizard.q('#sheetLayer form[data-form="resident"]');
+  const freeBed = Array.from(bedForm2.elements['bedId'].options).find((o) => o.value);
+  ok(!!freeBed, 'a free bed can be chosen');
+  bedForm2.elements['bedId'].value = freeBed.value;
+  bedForm2.elements['joiningDate'].value = new Date().toISOString().slice(0, 10);
+  wizard.act('wiz-next');
+  await wizard.settle(150);
+  const rentForm = wizard.q('#sheetLayer form[data-form="resident"]');
+  ok(!!rentForm && !!rentForm.elements['depositAmount'], 'the wizard rent step has a deposit field');
+  const depCheck = wizard.q('.deposit-check');
+  ok(!!depCheck, 'the deposit row has a Received checkbox block');
+  ok(css(depCheck, 'display') === 'flex', 'the checkbox block is a flex row: ' + css(depCheck, 'display'));
+  ok(css(depCheck, 'alignItems') === 'center', 'the checkbox is vertically centred');
+  ok(css(depCheck, 'gap') === '10px', 'a 10px gap separates the box from its label');
+  const depInput = rentForm.elements['depositAmount'];
+  ok(css(depInput, 'paddingLeft') === '38px', 'the rupee sign does not overlap the deposit digits: ' + css(depInput, 'paddingLeft'));
 
   console.log(failures === 0 ? '\nALL DETAIL TESTS PASSED' : '\n' + failures + ' TEST(S) FAILED');
   process.exit(failures ? 1 : 0);

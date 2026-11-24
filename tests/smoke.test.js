@@ -69,39 +69,58 @@ function db() {
 }
 function settle(ms) { return new Promise((r) => setTimeout(r, ms || 20)); }
 
-async function pinEntry(digits) {
-  for (const ch of String(digits)) click(q('.lock-key[data-digit="' + ch + '"]'));
-  await settle(240);
-}
-async function unlock() {
-  await settle(150);
-  if (!q('.lock-screen')) return;
-  if (q('.lock-screen').getAttribute('data-mode') === 'setup') {
-    await pinEntry('1234');
-    await pinEntry('1234');
-  } else {
-    await pinEntry('1234');
-  }
-  await settle(150);
+async function unlock(opts) {
+  opts = opts || {};
+  await settle(180);
+  if (!q('#authLayer.open')) return;
+  const form = q('#authLayer form[data-form="login"]');
+  form.elements['username'].value = opts.username || 'owner';
+  form.elements['password'].value = opts.password || 'hostel123';
+  if (form.elements['confirm']) form.elements['confirm'].value = opts.password || 'hostel123';
+  submit(form);
+  await settle(700);
 }
 
 (async function run() {
-  // ---------- fresh phone: PIN first, then onboarding ----------
+  // ---------- fresh phone: account first, then onboarding ----------
   open(null);
-  await settle(120);
-  ok(!!q('#lockLayer.open'), 'fresh phone opens on the PIN screen');
-  ok(q('.lock-screen').getAttribute('data-mode') === 'setup', 'PIN setup mode on first open');
-  ok(/Set your 4-digit PIN/.test(text(q('.lock-title'))), 'asks to set a 4-digit PIN');
-  ok(d.body.classList.contains('is-locked'), 'the app is blocked while the PIN screen is up');
+  await settle(140);
+  ok(!!q('#authLayer.open'), 'fresh phone opens on the sign-in screen');
+  ok(/Create your account/.test(text(q('.auth-title'))), 'first open asks to create an account');
+  ok(d.body.classList.contains('is-locked'), 'the app is blocked while the sign-in screen is up');
+  ok(!q('.lock-screen') && !q('.lock-key'), 'no PIN pad is rendered');
+  ok(!/PIN/i.test(text(q('#authLayer'))), 'no PIN wording on the sign-in screen');
   clickAct('add-resident');
   await settle(60);
-  ok(!q('#sheetLayer .sheet'), 'home actions cannot be used until the PIN is set');
-  await pinEntry('1234');
-  ok(/Confirm/.test(text(q('.lock-title'))), 'asks to confirm the PIN');
-  await pinEntry('1234');
-  await settle(150);
-  ok(!q('#lockLayer.open'), 'lock goes away after the PIN is confirmed');
-  ok(/PIN set/.test(text(q('#toast'))), 'toast confirms the PIN was set');
+  ok(!q('#sheetLayer .sheet'), 'home actions cannot be used until you sign in');
+
+  // validation
+  let loginForm = q('#authLayer form[data-form="login"]');
+  ok(!!loginForm.elements['mode'] && loginForm.elements['mode'].value === 'signup', 'sign-up mode on first open');
+  ok(!!loginForm.elements['confirm'], 'sign-up asks to confirm the password');
+  ok(!!loginForm.elements['stay'] && loginForm.elements['stay'].checked, '"Stay signed in" is on by default');
+  setVal(loginForm.elements['username'], 'owner');
+  setVal(loginForm.elements['password'], '123');
+  setVal(loginForm.elements['confirm'], '123');
+  submit(loginForm);
+  await settle(80);
+  ok(/at least 6 characters/i.test(text(q('#authLayer'))), 'short password rejected');
+  ok(!!q('#authLayer.open'), 'still locked after a bad password');
+  loginForm.elements['password'].value = 'hostel123';
+  loginForm.elements['confirm'].value = 'hostel124';
+  submit(loginForm);
+  await settle(80);
+  ok(/do not match/i.test(text(q('#authLayer'))), 'mismatched confirmation rejected');
+
+  loginForm.elements['confirm'].value = 'hostel123';
+  submit(loginForm);
+  await settle(800);
+  ok(!q('#authLayer.open'), 'sign-in screen goes away once the account is created');
+  ok(/Signed in/.test(text(q('#toast'))), 'toast confirms the sign-in: ' + text(q('#toast')));
+  ok(!!w.localStorage.getItem('hostelManager.session'), 'session stored for "stay signed in"');
+  const acct = JSON.parse(w.localStorage.getItem('hostelManager.account') || '{}');
+  ok(acct.username === 'owner', 'account saved: ' + JSON.stringify(acct && acct.username));
+  ok(!acct.password && !acct.secret, 'the password is never stored in plain text');
 
   ok(!!q('.hero'), 'home screen renders hero card');
   ok(text(q('.brand-name')).includes('Hostel Manager'), 'brand shown');
@@ -146,7 +165,7 @@ async function unlock() {
   // ---------- seeded app ----------
   open(seedFixture());
   await unlock();
-  ok(!q('#lockLayer.open'), 'seeded phone unlocked');
+  ok(!q('#authLayer.open'), 'seeded phone signs in');
   ok(!q('[data-act="load-demo"]'), 'demo action is gone everywhere');
   ok(!!q('.hero-amount'), 'hero renders with data');
   const heroAmount = text(q('.hero-amount'));
@@ -334,8 +353,15 @@ async function unlock() {
   ok(!/Load demo data/.test(text(q('.screen'))), 'settings has no Load demo data row');
   ok(/Erase everything/.test(text(q('.screen'))), 'settings offers Erase everything');
   ok(!/Clear all data/.test(text(q('.screen'))), 'old Clear all data label is gone');
-  ok(!/Set a PIN/.test(text(q('.screen'))), 'settings no longer offers an optional Set a PIN row');
-  ok(/Change PIN/.test(text(q('.screen'))), 'settings keeps Change PIN');
+  ok(!/PIN/.test(text(q('.screen'))), 'settings has no PIN rows left');
+  ok(/Account/.test(text(q('.screen'))), 'settings has an Account section');
+  ok(/Local account/.test(text(q('.screen'))), 'settings says this is a local account');
+  ok(!!q('#syncStatus'), 'settings shows a sync status row');
+  ok(/Cloud sync off/.test(text(q('#syncStatus'))), 'sync status explains cloud sync is off: ' + text(q('#syncStatus')));
+  ok(!!q('[data-act="logout"]'), 'settings offers Log out');
+  ok(!!q('[data-act="logout"] .st') && /Log out/.test(text(q('[data-act="logout"] .st'))), 'the log out row has a title');
+  ok(!!q('[data-act="logout"] .ss'), 'the log out row has a description line');
+  ok(!q('[data-act="change-pin"]'), 'no Change PIN action');
   ok(!!q('#waTemplate'), 'whatsApp template field');
   const tpl = q('#waTemplate');
   setVal(tpl, 'Hi {name}, please pay ₹{balance} for {month}. UPI {upi}');
@@ -409,12 +435,8 @@ async function unlock() {
   await settle();
   clickAct('clear-all');
   await settle(120);
-  ok(!!q('#lockLayer.open'), 'erase asks for the PIN first');
-  ok(!q('#confirmLayer .sheet'), 'no delete confirmation before the PIN is entered');
-  await pinEntry('1234');
-  await settle(250);
-  ok(!!q('#confirmLayer .sheet'), 'confirm dialog appears after the PIN');
-  ok(/This deletes all residents, rooms and payments\. Backup first\./.test(text(q('#confirmLayer'))), 'confirmation warns about the delete');
+  ok(!!q('#confirmLayer .sheet'), 'erase asks for confirmation right away (no PIN)');
+  ok(/This deletes all residents, rooms and payments/.test(text(q('#confirmLayer'))), 'confirmation warns about the delete');
   clickAct('confirm-yes');
   await settle();
   data = db();
