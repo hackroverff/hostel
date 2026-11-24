@@ -388,7 +388,10 @@ img{max-width:100%;display:block}
 .room-rent{text-align:right;flex:0 0 auto}
 .room-rent .r{font-size:16px;font-weight:750;letter-spacing:-.3px}
 .room-rent .l{font-size:11px;color:var(--muted);font-weight:600}
-.beds{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px}
+.beds{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;min-width:0}
+.beds.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.beds.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.beds.cols-4 .bed,.beds.cols-3 .bed{padding:7px 6px}
 .bed{
   min-height:58px;border-radius:13px;padding:7px 8px;border:1.5px solid transparent;
   display:flex;flex-direction:column;justify-content:center;gap:1px;text-align:left;overflow:hidden;
@@ -1037,7 +1040,7 @@ function upgrade(d) {
   });
   // repair relations
   d.rooms.forEach(function (r) {
-    r.sharing = num(r.sharing) || 1;
+    r.sharing = clamp(num(r.sharing) || 1, 1, 8);
     r.beds = num(r.beds) || r.sharing;
     r.floor = num(r.floor);
     r.rent = num(r.rent);
@@ -1834,6 +1837,13 @@ function renderHome() {
 /* ===========================================================================
    9. ROOMS
    =========================================================================== */
+/* 5+ beds wrap into even rows; 8-sharing rooms show 4 + 4 without overflowing */
+function bedColsClass(n) {
+  var count = num(n);
+  if (count >= 7) return ' cols-4';
+  if (count >= 5) return ' cols-3';
+  return '';
+}
 function renderRooms() {
   var rooms = roomsOfProperty(ui.prop);
   var occ = occupancy(ui.prop);
@@ -1873,7 +1883,7 @@ function renderRooms() {
         '<span class="dot" style="background:#CBD5E1"></span> ' + filled + '/' + beds.length + ' filled</div></div>' +
         '<div class="room-rent"><div class="r t-num">' + money(room.rent) + '</div><div class="l">per bed</div></div>' +
         '</div>' +
-        '<div class="beds">' + beds.map(function (b) {
+        '<div class="beds' + bedColsClass(beds.length) + '">' + beds.map(function (b) {
           var res = residentAtBed(b.id);
           var cls = res ? 'occupied' : 'vacant';
           return '<button class="bed ' + cls + '" data-act="bed" data-bed="' + attr(b.id) + '">' +
@@ -2856,7 +2866,7 @@ function sheetRoom(params) {
     '</div>' +
     '<div class="field"><label>Sharing type</label>' +
     '<div class="choice-grid" data-group="sharing">' +
-    [1, 2, 3, 4].map(function (n) {
+    [1, 2, 3, 4, 5, 6, 7, 8].map(function (n) {
       return '<button type="button" class="choice" data-act="pick" data-group="sharing" data-value="' + n + '" aria-pressed="' + (num(r.sharing) === n ? 'true' : 'false') + '">' + (n === 1 ? 'Single' : n + ' sharing') + '</button>';
     }).join('') + '</div>' +
     '<input type="hidden" name="sharing" value="' + num(r.sharing) + '"></div>' +
@@ -4645,6 +4655,10 @@ document.addEventListener('click', function (e) {
         var hidden = (container && container.parentNode ? container.parentNode.querySelector('input[name="' + group + '"]') : null) ||
           $('#sheetLayer input[name="' + group + '"]');
         if (hidden) hidden.value = value;
+        if (group === 'sharing') {
+          var bedsField = $('#sheetLayer input[name="beds"]');
+          if (bedsField) bedsField.value = value;
+        }
         break;
       }
       case 'fill-amount': {
@@ -4903,6 +4917,7 @@ function saveRoomForm(form) {
   var bedsN = Math.round(num(val(form, 'beds')));
   var sharing = Math.round(num(val(form, 'sharing')));
   var floor = Math.round(num(val(form, 'floor')));
+  if (!sharing || sharing < 1) sharing = Math.min(12, bedsN || 1);
   var ac = val(form, 'ac') || 'Non-AC';
   var ok = true;
   if (!number) ok = setError(fieldOf(form.elements['number']), 'Enter a room number');
