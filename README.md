@@ -20,11 +20,11 @@ On the very first open the app asks you to choose a **4-digit PIN** (enter it tw
 ## First 5 minutes
 
 1. Choose your **4-digit PIN** when the app opens, then tap the **gear** on Home → set your name, the **rent due day** (default 5th) and your **UPI ID**. Tap **Save settings**.
-2. **Rooms** → add each room: number, floor, sharing type, beds, rent per bed, AC / Non-AC. Beds (Bed 1, Bed 2…) are created automatically. On an empty Rooms screen there is also **Quick setup**, which fills both hostels with the usual rooms after you confirm (it never runs on its own):
+2. **Rooms** → add each room: number, floor, sharing type, beds, rent per bed, AC / Non-AC. Sharing can be **Single or 2 to 8 sharing**; picking one fills the number of beds for you (you can still change it). Beds (Bed 1, Bed 2…) are created automatically. On an empty Rooms screen there is also **Quick setup**, which fills both hostels with the usual rooms after you confirm (it never runs on its own):
    - Men's hostel — 4 rooms of 8 beds on Ground, 1st, 2nd and 3rd floor (32 beds) at ₹4,000 per bed.
    - Ladies hostel — 5 rooms on the 1st floor: 2, 2, 2, 3 and 1 sharing (10 beds) at ₹6,500 per bed.
 
-   Every room stays editable afterwards.
+   Every room stays editable afterwards (a room set to 8 sharing is still 8 sharing when you open it again).
 3. **Residents** → **Add resident** in three short steps: details → room & bed → rent & deposit. The first month can be pro-rated or charged full.
 4. **Payments** → tap a row to record money received (cash / UPI / bank transfer). Part payments keep a balance and can have several receipts. After saving you can send a short **WhatsApp receipt** with the amount, month, balance and date. For a hostel on **Split hostel bill**, tap **Add electricity bill** for the month: the bill is shared equally between everyone who stayed there that month and added to each due.
 5. **Reports** → pick a month and download **CSV** or use **Print / PDF**.
