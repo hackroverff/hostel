@@ -1,5 +1,5 @@
 /* Hostel Manager — offline cache */
-const CACHE = 'hostel-manager-v5';
+const CACHE = 'hostel-manager-v6';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {

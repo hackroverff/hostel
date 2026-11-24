@@ -22,6 +22,7 @@ function makeDom(seed) {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     beforeParse(w) {
+      w.HOSTEL_CONFIG = { cloud: false };
       w.scrollTo = () => {};
       w.print = () => {};
       w.URL.createObjectURL = () => 'blob:x';
@@ -120,10 +121,15 @@ async function unlock(h, opts) {
   form = h.q('#sheetLayer form[data-form="resident"]');
   ok(Number(form.elements['rent'].value) > 0, 'rent prefilled from room: ' + form.elements['rent'].value);
   const rentVal = Number(form.elements['rent'].value);
-  // pro-rating is gone: no first-month selector anywhere in the wizard
-  ok(!h.q('#sheetLayer [data-group="proRate"]'), 'no pro-rate / full-month selector');
-  ok(!h.q('#sheetLayer input[name="proRate"]'), 'the wizard carries no proRate field');
-  ok(/full monthly rent/i.test(text(h.q('#sheetLayer'))), 'the wizard says the full monthly rent applies');
+  // mid-month breakdown card + Pro-rate (default) / Full month
+  const step3 = text(h.q('#sheetLayer'));
+  ok(!!h.q('#sheetLayer [data-group="firstMode"]'), 'the wizard offers Pro-rate and Full month');
+  ok(!!h.q('#sheetLayer button[data-value="prorated"][aria-pressed="true"]'), 'Pro-rate is the default');
+  ok(/per day/.test(step3), 'the wizard shows the per-day rate');
+  ok(/First month rent/.test(step3), 'the wizard shows the first-month rent');
+  const autoDays = Math.min(dim(thisMk()), 30) && (dim(thisMk()) - joinDay + 1);
+  const autoRent = Math.min(rentVal, Math.round(Math.round(rentVal * 100 / 30) * autoDays / 100));
+  ok(step3.indexOf('\u20B9' + autoRent.toLocaleString('en-IN')) !== -1, 'the card shows the calculated first-month rent ' + autoRent);
   h.submit(form);
   await h.settle(80);
 
@@ -137,9 +143,12 @@ async function unlock(h, opts) {
   ok(bed && bed.status === 'occupied' && bed.residentId === created.id, 'bed marked occupied');
   const due = data.payments.filter((p) => p.residentId === created.id && p.month === thisMk())[0];
   ok(!!due, 'due auto-created for joining month');
-  ok(due.due === rentVal, 'first month is charged the full rent: ' + due.due + ' vs rent ' + rentVal);
-  ok(due.rent === rentVal, 'the due keeps the full rent on the rent line');
-  ok(!('proRate' in created), 'the resident is saved without a proRate flag');
+  ok(due.rent === autoRent, 'the first month is pro-rated by days stayed: ' + due.rent + ' vs ' + autoRent);
+  ok(!!due.pro && due.pro.days === autoDays, 'the due remembers the days charged: ' + (due.pro && due.pro.days) + ' vs ' + autoDays);
+  ok(due.pro && due.pro.basisDays === 30, 'the default 30-day basis is used');
+  ok(!('proRate' in created), 'the resident is saved without a legacy proRate flag');
+  ok(!!created.firstMonth && created.firstMonth.month === thisMk(), 'the first-month choice is stored on the resident');
+  ok(created.firstMonth.mode === 'prorated' && created.firstMonth.edited === false, 'the stored choice is an unedited pro-rate');
 
   // profile shown after add
   ok(/New Resident/.test(text(h.q('.profile-head'))), 'lands on new resident profile');
