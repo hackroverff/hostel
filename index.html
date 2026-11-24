@@ -290,11 +290,16 @@ img{max-width:100%;display:block}
 .inline-input .suffix{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-weight:600;pointer-events:none}
 .inline-input .prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;pointer-events:none}
 .inline-input.has-prefix .input{padding-left:38px}
+.inline-input.has-prefix.wide-prefix .prefix{left:12px}
+.inline-input.has-prefix.wide-prefix .input{padding-left:56px}
 .inline-input.has-suffix .input{padding-right:56px}
 .checkline{display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:0 2px;cursor:pointer}
+.field > label.deposit-check,.deposit-check{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 12px;border:1.5px solid #E4E9F2;border-radius:14px;background:#F7F9FD;cursor:pointer}
+.deposit-check input{margin:0}
+.deposit-check span{font-size:14px;line-height:1.2}
 .checkline input{
   width:24px;height:24px;border-radius:8px;border:1.5px solid #CBD5E1;appearance:none;-webkit-appearance:none;
-  background:#fff;flex:0 0 auto;position:relative;
+  background:#fff;flex:0 0 auto;position:relative;margin:0;
 }
 .checkline input:checked{background:var(--navy);border-color:var(--navy)}
 .checkline input:checked::after{
@@ -535,8 +540,9 @@ img{max-width:100%;display:block}
 .set-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);width:100%;text-align:left;min-height:60px;background:#fff}
 .set-row:last-child{border-bottom:0}
 .set-row .si{width:36px;height:36px;border-radius:11px;background:var(--navy-50);color:var(--navy);display:grid;place-items:center;flex:0 0 auto}
-.set-row .st{font-size:15px;font-weight:620}
-.set-row .ss{font-size:12px;color:var(--muted);margin-top:1px}
+.set-row .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.set-row .st{display:block;font-size:15px;font-weight:620;line-height:1.25}
+.set-row .ss{display:block;font-size:12px;color:var(--muted);line-height:1.35}
 .set-row.danger .si{background:var(--red-bg);color:var(--red)}
 .set-row.danger .st{color:var(--red)}
 .set-label{padding:13px 16px 4px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;background:#fff}
@@ -606,47 +612,39 @@ img{max-width:100%;display:block}
 .receipt-hero .ra{font-size:30px;font-weight:750;letter-spacing:-.8px;margin-top:6px;font-variant-numeric:tabular-nums}
 .receipt-hero .rs{font-size:13px;font-weight:650;color:#047857;opacity:.85;margin-top:2px}
 
-/* ---------- app lock ---------- */
-#lockLayer{position:fixed;inset:0;z-index:100;display:none}
-#lockLayer.open{display:block}
-.lock-screen{
+/* ---------- sign in ---------- */
+#authLayer{position:fixed;inset:0;z-index:100;display:none}
+#authLayer.open{display:block}
+.auth-screen{
   position:absolute;inset:0;overflow-y:auto;
   background:linear-gradient(160deg,#0D2160 0%,#1E40AF 55%,#2B5BE0 100%);
   color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(22px + env(safe-area-inset-bottom,0px));
 }
-.lock-glow{position:absolute;width:440px;height:440px;border-radius:50%;top:-170px;right:-150px;pointer-events:none;
+.auth-glow{position:absolute;width:440px;height:440px;border-radius:50%;top:-170px;right:-150px;pointer-events:none;
   background:radial-gradient(circle at center,rgba(255,255,255,.16),rgba(255,255,255,0) 68%)}
-.lock-inner{width:100%;max-width:330px;text-align:center;position:relative;margin:auto 0}
-.lock-mark{width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 12px 26px -14px rgba(0,0,0,.6)}
-.lock-brand{font-size:14px;font-weight:700;color:#C9D6FF;letter-spacing:.3px}
-.lock-title{font-size:24px;font-weight:750;letter-spacing:-.5px;margin-top:3px}
-.lock-sub{font-size:13.5px;color:#C9D6FF;margin-top:6px;line-height:1.45;min-height:38px}
-.pin-dots{display:flex;gap:15px;justify-content:center;margin:18px 0 6px}
-.pin-dots span{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.45);transition:background .12s,transform .12s}
-.pin-dots span.on{background:#fff;border-color:#fff;transform:scale(1.08)}
-.pin-dots.error span{border-color:#FCA5A5}
-.pin-dots.shake{animation:pinShake .32s}
-@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
-.lock-msg{min-height:22px;font-size:13px;font-weight:650;color:#FFD7D7;margin-bottom:8px}
-.lock-msg.ok{color:#A7F3D0}
-.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
-.lock-key{
-  height:60px;border-radius:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.17);
-  color:#fff;font-size:25px;font-weight:600;display:grid;place-items:center;
-  transition:transform .1s,background .12s;
-}
-.lock-key:active{transform:scale(.95);background:rgba(255,255,255,.22)}
-.lock-key.blank{background:transparent;border-color:transparent;pointer-events:none}
-.lock-key.delete{font-size:13px;font-weight:700;letter-spacing:.2px;color:#DCE5FF}
-.lock-link{margin-top:12px;color:#C9D6FF;font-size:13.5px;font-weight:650;min-height:48px;padding:0 14px;border-radius:12px}
-.lock-link:active{background:rgba(255,255,255,.1)}
-.lock-help{margin-top:14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:14px;text-align:left;color:#E7EDFF;font-size:13px;line-height:1.5}
-.lock-help b{display:block;font-size:14.5px;margin-bottom:4px;color:#fff}
-.lock-help .btn{margin-top:10px;min-height:48px}
-.lock-help .btn.ghost{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)}
-.lock-foot{margin-top:18px;font-size:11.5px;color:#A9BCF5}
-
+.auth-inner{width:100%;max-width:360px;text-align:center;position:relative;margin:auto 0}
+.auth-mark{width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 12px 26px -14px rgba(0,0,0,.6)}
+.auth-brand{font-size:14px;font-weight:700;color:#C9D6FF;letter-spacing:.3px}
+.auth-title{font-size:24px;font-weight:750;letter-spacing:-.5px;margin-top:3px}
+.auth-sub{font-size:13.5px;color:#C9D6FF;margin-top:6px;line-height:1.45}
+.auth-card{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:14px 14px 6px;margin-top:16px;text-align:left}
+.auth-screen .field label{color:#DCE5FF}
+.auth-screen .input{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.26);color:#fff}
+.auth-screen .input::placeholder{color:#B9C8F2}
+.auth-screen .field.has-error .input{border-color:#FCA5A5;background:rgba(255,255,255,.2)}
+.auth-check{display:flex;align-items:center;gap:10px;margin:2px 2px 12px;min-height:44px;cursor:pointer}
+.auth-check input{width:22px;height:22px;margin:0;accent-color:#fff;flex:0 0 auto}
+.auth-check span{font-size:13.5px;color:#DCE5FF;font-weight:600;line-height:1.25}
+.auth-msg{min-height:20px;font-size:13px;font-weight:650;color:#FFD7D7;margin:2px 2px 8px;line-height:1.4}
+.auth-msg.ok{color:#A7F3D0}
+.auth-screen .btn{background:#fff;color:var(--navy);box-shadow:0 12px 22px -14px rgba(0,0,0,.7)}
+.auth-screen .btn:disabled{opacity:.75}
+.auth-links{display:flex;flex-direction:column;gap:2px;align-items:center;margin-top:8px}
+.auth-link{color:#C9D6FF;font-size:13.5px;font-weight:650;min-height:44px;padding:0 12px;border-radius:12px}
+.auth-link:active{background:rgba(255,255,255,.1)}
+.auth-foot{margin-top:12px;font-size:11.5px;color:#A9BCF5;line-height:1.55}
+.auth-foot b{color:#E2E9FF}
 
 /* ---------- large text mode (+15%) ---------- */
 html.large-text body{font-size:18.4px}
@@ -768,7 +766,7 @@ html.large-text .receipt-hero .rs{font-size:15px}
 </div>
 <div id="sheetLayer"></div>
 <div id="confirmLayer"></div>
-<div id="lockLayer" aria-live="polite"></div>
+<div id="authLayer" aria-live="polite"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="print-root" id="printRoot"></div>
 <noscript>
@@ -781,6 +779,21 @@ html.large-text .receipt-hero .rs{font-size:15px}
 <script>
 (function () {
 'use strict';
+
+/* ===========================================================================
+   0. SUPABASE CONFIG  (edit these two lines to turn on cloud login + sync)
+   ---------------------------------------------------------------------------
+   1. Create a free project at https://supabase.com
+   2. Run the SQL in README.md ("Supabase setup") to create hostel_data + RLS.
+   3. Paste the Project URL and the anon/public key below (or provide them as
+      window.HOSTEL_CONFIG = { supabaseUrl, supabaseAnonKey }, as
+      <meta name="hostel-supabase-url" content="..."> + hostel-supabase-key,
+      or in localStorage 'hostelManager.config').
+   Leave both blank to use a local account on this phone only.
+   =========================================================================== */
+var SUPABASE_URL = '';       /* e.g. 'https://abcdefghijkl.supabase.co' */
+var SUPABASE_ANON_KEY = '';  /* the anon public key (safe in the browser with RLS) */
+var SUPABASE_TABLE = 'hostel_data';
 
 /* ===========================================================================
    1. Small helpers
@@ -801,6 +814,7 @@ function attr(s) { return esc(s); }
 function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 function parseAmount(v) { return Math.max(0, Math.round(num(String(v == null ? '' : v).replace(/[^\d.-]/g, '')))); }
 function clamp(n, a, b) { return Math.min(b, Math.max(a, n)); }
+function plural(n, one, many) { var v = num(n); return v + ' ' + (v === 1 ? one : (many || one + 's')); }
 function uid(prefix) {
   return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -993,7 +1007,8 @@ function blankDB() {
       lastRunMonth: thisMonth(),
       lastBackup: null,
       createdAt: new Date().toISOString(),
-      firstMonthMode: 'prorate'
+      syncedAt: null,
+      updatedAt: null
     }
   };
 }
@@ -1064,16 +1079,18 @@ function upgrade(d) {
     r.rent = num(r.rent);
     r.depositAmount = num(r.depositAmount);
     if (typeof r.depositReceived !== 'boolean') r.depositReceived = r.depositAmount > 0;
-    if (typeof r.proRate !== 'boolean') r.proRate = true;
+    delete r.proRate;
   });
   d.expenses.forEach(function (e) { e.amount = num(e.amount); });
   ensureBedsForRooms(d);
   return d;
 }
 
-function save() {
+function save(opts) {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    if (db && db.meta) db.meta.updatedAt = new Date().toISOString();
+    if (!(opts && opts.local)) scheduleCloudSync();
     return true;
   } catch (e) {
     console.warn('Save failed', e);
@@ -1328,18 +1345,9 @@ function dueDayLabel() {
   return ordinal(d) + ' of every month';
 }
 
-/* --- rent for a resident in a month (pro-rated in joining month if asked) --- */
-function rentForMonth(resident, mk) {
-  var rent = num(resident.rent);
-  if (!resident.proRate) return rent;
-  var joinMk = String(resident.joiningDate || '').slice(0, 7);
-  if (joinMk !== mk) return rent;
-  var joinDay = parseISO(resident.joiningDate);
-  var dim = daysInMonth(mk);
-  if (!joinDay) return rent;
-  var days = dim - joinDay.getDate() + 1;
-  if (days >= dim) return rent;
-  return Math.max(0, Math.round((rent * days) / dim));
+/* --- rent for a resident in a month: always the full monthly rent --- */
+function rentForMonth(resident) {
+  return num(resident.rent);
 }
 
 /* --- keep beds in sync with residents (single source of truth = resident.bedId) --- */
@@ -1566,6 +1574,7 @@ var ICONS = {
   share: '<path d="M4 12.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"/><path d="m16 6-4-4-4 4"/><path d="M12 2v12"/>',
   eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>',
   bolt: '<path d="m13 2-9 12h6l-1 8 9-12h-6l1-8z"/>',
+  cloud: '<path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.2 10.5 3.75 3.75 0 0 0 7 19h10.5z"/>',
   wifi: '<path d="M2 8.8a16 16 0 0 1 20 0"/><path d="M5.5 12.3a10.5 10.5 0 0 1 13 0"/><path d="M8.8 15.8a5.2 5.2 0 0 1 6.4 0"/><path d="M12 19.5h.01"/>'
 };
 function icon(name, size, cls) {
@@ -1593,7 +1602,6 @@ var ui = {
   wizard: null,
   revealedIds: {},
   receipt: null,
-  restoreResetPin: false,
   settingsReturn: null,
   scrollMemo: {},
   restoreScroll: false,
@@ -2084,8 +2092,6 @@ function renderResidentProfile(id) {
         : '') + '</div></div>' +
     '<div class="kv"><div class="k">Joining date</div><div class="v">' + esc(fmtDate(r.joiningDate)) + '</div></div>' +
     '<div class="kv"><div class="k">Monthly rent</div><div class="v t-num">' + money(r.rent) + '</div></div>' +
-    (r.proRate && String(r.joiningDate || '').slice(0, 7) === thisMonth()
-      ? '<div class="kv"><div class="k">First month</div><div class="v">Pro-rated from joining</div></div>' : '') +
     (r.notes ? '<div class="kv"><div class="k">Notes</div><div class="v" style="font-weight:500;white-space:pre-wrap">' + esc(r.notes) + '</div></div>' : '') +
     '</div></div></div>';
 
@@ -2541,7 +2547,7 @@ function reportOccupancy() {
     var rooms = roomsOfProperty(prop.id);
     return '<div class="card" style="margin-bottom:10px">' +
       '<div class="row-between"><div><div class="card-title" style="margin:0">' + esc(prop.name) + '</div>' +
-      '<div class="small muted" style="margin-top:2px">' + rooms.length + ' rooms \u00B7 ' + o.total + ' beds</div></div>' +
+      '<div class="small muted" style="margin-top:2px">' + plural(rooms.length, 'room') + ' \u00B7 ' + plural(o.total, 'bed') + '</div></div>' +
       '<div style="text-align:right"><div class="t-num bold" style="font-size:20px">' + o.occupied + '/' + o.total + '</div><div class="tiny muted">' + o.vacant + ' vacant</div></div></div>' +
       '<div class="occ-bar"><span style="width:' + o.pct + '%"></span></div>' +
       '<div class="row-between" style="margin-top:6px"><span class="tiny muted">' + o.pct + '% filled</span>' +
@@ -2780,7 +2786,7 @@ function closeSheet() {
   ui.sheet = null;
   ui.elecEdit = false;
   $('#sheetLayer').innerHTML = '';
-  if (pinState.mode === 'none') document.body.classList.remove('is-locked');
+  if (!authState.visible) document.body.classList.remove('is-locked');
   // remove any transient errors / focus
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -2799,7 +2805,6 @@ function renderSheet() {
     else if (n === 'payPicker') html = sheetPayPicker(p);
     else if (n === 'install') html = sheetInstall();
     else if (n === 'receipt') html = sheetReceipt();
-    else if (n === 'changePin') html = sheetChangePin();
     else if (n === 'elecBill') html = sheetElecBill(p);
   } catch (e) {
     console.error('Sheet failed', e);
@@ -2819,7 +2824,7 @@ function askConfirm(opts) {
 function closeConfirm() {
   ui.confirm = null;
   renderConfirm();
-  if (!ui.sheet && pinState.mode === 'none') document.body.classList.remove('is-locked');
+  if (!ui.sheet && !authState.visible) document.body.classList.remove('is-locked');
 }
 function renderConfirm() {
   var layer = $('#confirmLayer');
@@ -2971,7 +2976,7 @@ function newDraft() {
     name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '',
     photo: '', propertyId: (ui.prop !== 'all' ? ui.prop : db.properties[0].id), roomId: '', bedId: '',
     joiningDate: todayISO(), rent: propertyRent(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
-    proRate: true, depositAmount: propertyAdvance(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
+    depositAmount: propertyAdvance(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
     depositReceived: false, notes: ''
   };
 }
@@ -2985,7 +2990,7 @@ function openResidentWizard(id, bedId) {
         name: r.name, phone: r.phone || '', guardianName: r.guardianName || '', guardianPhone: r.guardianPhone || '',
         college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: r.idNumber || '', photo: r.photo || '',
         propertyId: r.propertyId, roomId: r.roomId || '', bedId: r.bedId || '', joiningDate: r.joiningDate || todayISO(),
-        rent: num(r.rent), proRate: r.proRate !== false, depositAmount: num(r.depositAmount),
+        rent: num(r.rent), depositAmount: num(r.depositAmount),
         depositReceived: !!r.depositReceived, notes: r.notes || '', rentFrom: thisMonth()
       }
     };
@@ -3018,7 +3023,7 @@ function wizBody(data, step) {
       '</div></div>' +
       '<div class="field"><label>Full name <span style="color:var(--red)">*</span></label><input class="input" name="name" autocomplete="name" placeholder="e.g. Anjali Ramesh" value="' + attr(data.name) + '"><div class="field-error"></div></div>' +
       '<div class="field"><label>Phone number <span style="color:var(--red)">*</span></label>' +
-      '<div class="inline-input has-prefix"><span class="prefix">+91</span><input class="input" name="phone" inputmode="numeric" maxlength="10" placeholder="10 digit number" value="' + attr(data.phone) + '"></div><div class="field-error"></div></div>' +
+      '<div class="inline-input has-prefix wide-prefix"><span class="prefix">+91</span><input class="input" name="phone" inputmode="numeric" maxlength="10" placeholder="10 digit number" value="' + attr(data.phone) + '"></div><div class="field-error"></div></div>' +
       '<div class="form-grid">' +
       '<div class="field"><label>Guardian name</label><input class="input" name="guardianName" placeholder="Parent or guardian" value="' + attr(data.guardianName) + '"></div>' +
       '<div class="field"><label>Guardian phone</label><input class="input" name="guardianPhone" inputmode="numeric" maxlength="10" placeholder="10 digits" value="' + attr(data.guardianPhone) + '"><div class="field-error"></div></div>' +
@@ -3065,13 +3070,6 @@ function wizBody(data, step) {
         '<div class="small muted" style="margin-top:2px">' + (bedCount ? bedCount + ' bed' + (bedCount > 1 ? 's' : '') + ' available in this room' : 'This room is full \u2014 choose another room') + '</div></div>' : '') +
       '<div class="field"><label>Joining date <span style="color:var(--red)">*</span></label><input class="input" type="date" name="joiningDate" value="' + attr(data.joiningDate) + '"><div class="field-error"></div></div>';
   }
-  var joinMk = String(data.joiningDate || todayISO()).slice(0, 7);
-  var dim = daysInMonth(joinMk);
-  var joinD = parseISO(data.joiningDate || todayISO());
-  var stayDays = joinD ? (dim - joinD.getDate() + 1) : dim;
-  var rentN = num(data.rent);
-  var prorated = Math.round(rentN * stayDays / dim);
-  var showPro = joinMk === thisMonth() && stayDays < dim;
   return '<div class="field"><label>Monthly rent <span style="color:var(--red)">*</span></label>' +
     '<div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="rent" inputmode="numeric" value="' + (data.rent === '' ? '' : num(data.rent)) + '"></div>' +
     '<div class="field-error"></div><div class="field-hint">Usually the room rent. You can change it for this resident.</div></div>' +
@@ -3079,18 +3077,11 @@ function wizBody(data, step) {
       ? '<div class="field"><label>Apply a rent change from</label><select class="select" name="rentFrom">' + rentMonthOptions(data.rentFrom) + '</select>' +
         '<div class="field-hint">Only used when the rent above is different. Earlier months keep the old rent.</div></div>'
       : '') +
-    (showPro
-      ? '<div class="field"><label>First month rent (' + esc(fmtMonth(joinMk)) + ')</label>' +
-        '<div class="choice-grid" data-group="proRate">' +
-        '<button type="button" class="choice" data-act="pick" data-group="proRate" data-value="1" aria-pressed="' + (data.proRate ? 'true' : 'false') + '">Pro-rate<br>' + money(prorated) + '</button>' +
-        '<button type="button" class="choice" data-act="pick" data-group="proRate" data-value="0" aria-pressed="' + (!data.proRate ? 'true' : 'false') + '">Full month<br>' + money(rentN) + '</button>' +
-        '</div><input type="hidden" name="proRate" value="' + (data.proRate ? '1' : '0') + '">' +
-        '<div class="field-hint">Joined on ' + esc(fmtDate(data.joiningDate)) + ' \u00B7 ' + stayDays + ' of ' + dim + ' days.</div></div>'
-      : '<input type="hidden" name="proRate" value="' + (data.proRate ? '1' : '0') + '">') +
+    '<div class="field-hint">Full monthly rent is charged for the joining month too.</div>' +
     '<div class="form-grid">' +
     '<div class="field"><label>Security deposit</label><div class="inline-input has-prefix"><span class="prefix">\u20B9</span><input class="input" name="depositAmount" inputmode="numeric" value="' + (data.depositAmount === '' ? '' : num(data.depositAmount)) + '" placeholder="0"></div></div>' +
-    '<div class="field"><label>&nbsp;</label><label class="checkline" style="min-height:52px;padding:0 12px;border:1.5px solid #E4E9F2;border-radius:14px;background:#F7F9FD">' +
-    '<input type="checkbox" name="depositReceived"' + (data.depositReceived ? ' checked' : '') + '><span style="font-size:14px">Received</span></label></div>' +
+    '<div class="field"><label>&nbsp;</label><label class="deposit-check">' +
+    '<input type="checkbox" name="depositReceived"' + (data.depositReceived ? ' checked' : '') + '><span>Received</span></label></div>' +
     '</div>' +
     '<div class="field"><label>Notes</label><textarea class="textarea" name="notes" placeholder="Anything to remember (optional)">' + esc(data.notes) + '</textarea></div>';
 }
@@ -3132,8 +3123,6 @@ function captureWizard() {
   });
   var received = form.elements['depositReceived'];
   if (received) d.depositReceived = !!received.checked;
-  var pro = form.elements['proRate'];
-  if (pro) d.proRate = pro.value === '1';
 }
 
 function validatePhoneField(field, value, required, label) {
@@ -3224,7 +3213,7 @@ function saveResidentForm(form) {
     guardianPhone: cleanPhone(w.data.guardianPhone), college: w.data.college.trim(),
     idType: w.data.idType, idNumber: w.data.idNumber.trim(), photo: w.data.photo || '',
     propertyId: w.data.propertyId, roomId: roomId, bedId: bedId,
-    joiningDate: joining, rent: rent, proRate: !!w.data.proRate,
+    joiningDate: joining, rent: rent,
     depositAmount: deposit, depositReceived: !!w.data.depositReceived,
     notes: w.data.notes.trim()
   };
@@ -3699,23 +3688,32 @@ function renderSettings() {
     '<button class="set-row" data-act="restore"><span class="si">' + icon('upload', 18) + '</span>' +
     '<span class="grow"><span class="st">Restore data</span><span class="ss">Upload a backup file</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<div class="set-row" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('building', 18) + '</span>' +
-    '<span class="grow"><span class="st">On this phone</span><span class="ss">' + db.residents.length + ' residents \u00B7 ' + db.rooms.length + ' rooms \u00B7 ' + storageKB() + ' KB used</span></span></div>' +
+    '<span class="grow"><span class="st">On this phone</span><span class="ss">' + plural(db.residents.length, 'resident') + ' \u00B7 ' + plural(db.rooms.length, 'room') + ' \u00B7 ' + storageKB() + ' KB used</span></span></div>' +
     '<button class="set-row danger" data-act="clear-all"><span class="si">' + icon('trash', 18) + '</span>' +
     '<span class="grow"><span class="st">Erase everything</span><span class="ss">Delete all residents, rooms and payments</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '</div>' +
     '<input type="file" id="restoreFile" accept="application/json,.json" style="display:none">';
 
-  h += '<div class="set-label">Lock and display</div>' +
+  h += '<div class="set-label">Account</div>' +
     '<div class="set-group">' +
-    '<div class="set-row" style="border-bottom:1px solid var(--line)"><span class="si">' + icon('lock', 18) + '</span>' +
-    '<span class="grow"><span class="st">PIN lock</span><span class="ss">Asked when the app opens or after 2 minutes away</span></span><span class="badge paid">On</span></div>' +
-    '<button class="set-row" data-act="change-pin"><span class="si">' + icon('key', 18) + '</span>' +
-    '<span class="grow"><span class="st">Change PIN</span><span class="ss">Use a new 4-digit code</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
+    '<div class="set-row"><span class="si">' + icon('user', 18) + '</span>' +
+    '<span class="grow"><span class="st">' + esc(sessionName()) + '</span><span class="ss">' +
+    (cloud.config.configured ? 'Signed in with your Supabase account' : 'Local account on this phone') + '</span></span>' +
+    (session && session.cloud ? '<span class="badge paid">Cloud</span>' : '<span class="badge neutral">Local</span>') + '</div>' +
+    '<div class="set-row" id="syncStatus">' + syncStatusHTML() + '</div>' +
+    (session && session.cloud
+      ? '<button class="set-row" data-act="sync-now"><span class="si">' + icon('cloud', 18) + '</span>' +
+        '<span class="grow"><span class="st">Sync now</span><span class="ss">Save this phone\u2019s data to the cloud</span></span>' + icon('chevronRight', 18, 'chev') + '</button>'
+      : '') +
+    '<button class="set-row danger" data-act="logout"><span class="si">' + icon('logout', 18) + '</span>' +
+    '<span class="grow"><span class="st">Log out</span><span class="ss">Lock the app and go back to the sign-in screen</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
+    '</div>' +
+
+  '<div class="set-label">Display</div>' +
+    '<div class="set-group">' +
     '<button class="set-row" data-act="toggle-large-text" aria-pressed="' + (s.largeText ? 'true' : 'false') + '"><span class="si" style="font-weight:800;font-size:15px;letter-spacing:-.5px">Aa</span>' +
     '<span class="grow"><span class="st">Large text</span><span class="ss">About 15% bigger text everywhere</span></span>' +
     '<span class="switch' + (s.largeText ? ' on' : '') + '"><i></i></span></button>' +
-    '<div class="tiny muted" style="padding:11px 16px 14px;line-height:1.55">' +
-    'Forgot your PIN? It cannot be shown. The only way to reset it is to restore a backup file.' + '</div>' +
     '</div>' +
 
     '<div class="set-label">App</div>' +
@@ -3723,10 +3721,11 @@ function renderSettings() {
     '<button class="set-row" data-act="install-help"><span class="si">' + icon('phone', 18) + '</span>' +
     '<span class="grow"><span class="st">Install on home screen</span><span class="ss">Open like a normal app, works offline</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<div class="set-row"><span class="si">' + icon('info', 18) + '</span>' +
-    '<span class="grow"><span class="st">Hostel Manager</span><span class="ss">Version 1.0 \u00B7 No login \u00B7 No internet needed</span></span></div>' +
+    '<span class="grow"><span class="st">Hostel Manager</span><span class="ss">Version 1.1 \u00B7 Account login \u00B7 Works offline</span></span></div>' +
     '</div>';
 
-  h += '<div class="tiny muted center" style="padding:6px 20px 20px;line-height:1.6">Your data stays on this phone.<br>Keep a weekly backup to be safe.</div>';
+  h += '<div class="tiny muted center" style="padding:6px 20px 20px;line-height:1.6">' +
+    (cloud.config.configured ? 'Your hostel data is saved to your account and cached on this phone.<br>Keep a weekly backup too, just in case.' : 'Your data stays on this phone.<br>Keep a weekly backup to be safe.') + '</div>';
   h += '</div>';
   return h;
 }
@@ -3858,7 +3857,7 @@ function handleRestoreFile(file) {
         }
         askConfirm({
           title: 'Restore this backup?',
-          message: 'It has <b>' + data.residents.length + ' residents</b>, ' + data.rooms.length + ' rooms and ' + data.payments.length + ' rent records.<br><br>Your current data on this phone will be replaced.',
+          message: 'It has <b>' + plural(data.residents.length, 'resident') + '</b>, ' + plural(data.rooms.length, 'room') + ' and ' + plural(data.payments.length, 'rent record') + '.<br><br>Your current data on this phone will be replaced.',
           confirmLabel: 'Yes, restore',
           icon: 'upload',
           onYes: function () {
@@ -3874,17 +3873,11 @@ function handleRestoreFile(file) {
               applyUiPrefs();
               render();
               window.scrollTo(0, 0);
-              if (ui.restoreResetPin) {
-                ui.restoreResetPin = false;
-                clearPinRecord();
-                closeSheet();
-                closeConfirm();
-                hideLock();
-                showLock('setup');
-                toast('Backup restored \u00B7 set a new PIN', 'good');
-              } else {
-                toast('Backup restored', 'good');
-              }
+              closeSheet();
+              closeConfirm();
+              save();
+              if (session && session.cloud) syncNow();
+              toast('Backup restored', 'good');
             } catch (e) {
               console.warn(e);
               toast('Could not restore. The file may be damaged.', 'bad');
@@ -3922,46 +3915,132 @@ function clearAllData() {
   }
 }
 function requestEraseAll() {
-  var ask = function () {
-    askConfirm({
-      title: 'Erase everything?',
-      message: 'This deletes all residents, rooms and payments. Backup first.',
-      confirmLabel: 'Yes, erase everything',
-      icon: 'trash',
-      onYes: clearAllData
-    });
-  };
-  if (!readPinRecord()) return ask();
-  requestPinVerify(ask);
+  askConfirm({
+    title: 'Erase everything?',
+    message: 'This deletes all residents, rooms and payments' + (session && session.cloud ? ' on this phone and in the cloud' : '') + '. Backup first.',
+    confirmLabel: 'Yes, erase everything',
+    icon: 'trash',
+    onYes: clearAllData
+  });
 }
 
 /* ===========================================================================
-   25b. APP LOCK (4-digit PIN)
-   =========================================================================== */
-var PIN_KEY = 'hostelManager.pin';
-var PIN_TTL_MS = 2 * 60 * 1000;
-var pinState = {
-  record: null, mode: 'none', entry: '', first: '', error: '', showHelp: false,
-  busy: false, attempts: 0, blockedUntil: 0, shake: false, afterVerify: null
-};
-var lockHiddenAt = 0;
+   25b. ACCOUNT (username + password) AND SUPABASE CLOUD SYNC
+   ---------------------------------------------------------------------------
+   The two constants at the top of this file (SUPABASE_URL / SUPABASE_ANON_KEY)
+   turn on cloud sign-in and syncing. They can also come from
+   window.HOSTEL_CONFIG = { supabaseUrl, supabaseAnonKey }, from
+   <meta name="hostel-supabase-url"> / <meta name="hostel-supabase-key">, or from
+   localStorage 'hostelManager.config'. With no config the app uses a local
+   account on this device and keeps working offline.
 
-function readPinRecord() {
+   Run this once in the Supabase SQL editor (it keeps every row private):
+
+     create table public.hostel_data (
+       user_id uuid primary key references auth.users on delete cascade,
+       data jsonb not null,
+       updated_at timestamptz not null default now()
+     );
+     alter table public.hostel_data enable row level security;
+     create policy "own row" on public.hostel_data for all
+       using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+   Then: POST /auth/v1/token?grant_type=password (and /signup, /recover,
+   /logout) for auth, and GET|POST /rest/v1/hostel_data?on_conflict=user_id
+   for the single JSONB row per user.
+   =========================================================================== */
+var SESSION_KEY = 'hostelManager.session';
+var ACCOUNT_KEY = 'hostelManager.account';
+var CACHE_OWNER_KEY = 'hostelManager.owner';
+var CONFIG_KEY = 'hostelManager.config';
+
+function readCloudConfig() {
+  var cfg = {
+    url: String(SUPABASE_URL || '').trim(),
+    key: String(SUPABASE_ANON_KEY || '').trim(),
+    table: String(SUPABASE_TABLE || 'hostel_data').trim() || 'hostel_data',
+    domain: 'hostel.local'
+  };
+  var ext = null;
+  try { if (typeof window !== 'undefined' && window.HOSTEL_CONFIG) ext = window.HOSTEL_CONFIG; } catch (e) {}
+  if (!ext) { try { var raw = localStorage.getItem(CONFIG_KEY); if (raw) ext = JSON.parse(raw); } catch (e) {} }
+  if (!ext) {
+    try {
+      var mu = document.querySelector('meta[name="hostel-supabase-url"]');
+      var mk = document.querySelector('meta[name="hostel-supabase-key"]');
+      if ((mu && mu.content) || (mk && mk.content)) {
+        ext = { supabaseUrl: mu ? mu.content : '', supabaseAnonKey: mk ? mk.content : '' };
+      }
+    } catch (e) {}
+  }
+  if (ext && typeof ext === 'object') {
+    cfg.url = String(ext.supabaseUrl || ext.SUPABASE_URL || ext.url || cfg.url || '').trim();
+    cfg.key = String(ext.supabaseAnonKey || ext.SUPABASE_ANON_KEY || ext.key || cfg.key || '').trim();
+    if (ext.table) cfg.table = String(ext.table).trim();
+    if (ext.usernameDomain) cfg.domain = String(ext.usernameDomain).replace(/^@/, '').trim();
+  }
+  cfg.url = cfg.url.replace(/\/+$/, '');
+  cfg.configured = !!(cfg.url && cfg.key);
+  return cfg;
+}
+
+var cloud = {
+  config: readCloudConfig(), status: 'local', error: '', at: 0,
+  timer: null, pending: false, applying: false, lastPullAt: 0
+};
+var session = null;
+var authState = { visible: false, mode: 'login', error: '', notice: '', busy: false, username: '' };
+
+/* --- tiny storage helpers (every access in try/catch) --------------------- */
+function safeGet(store, key) {
+  try { return window[store] ? window[store].getItem(key) : null; } catch (e) { return null; }
+}
+function safeSet(store, key, value) {
+  try { if (window[store]) { window[store].setItem(key, value); return true; } } catch (e) { console.warn('Could not save ' + key, e); }
+  return false;
+}
+function safeRemove(store, key) {
+  try { if (window[store]) window[store].removeItem(key); } catch (e) {}
+}
+
+function readSession() {
+  var raw = safeGet('sessionStorage', SESSION_KEY) || safeGet('localStorage', SESSION_KEY);
+  if (!raw) return null;
   try {
-    var raw = localStorage.getItem(PIN_KEY);
-    if (!raw) return null;
+    var s = JSON.parse(raw);
+    if (!s || !s.user) return null;
+    return s;
+  } catch (e) { return null; }
+}
+function writeSession(s) {
+  var raw = JSON.stringify(s);
+  if (s.stay) {
+    safeSet('localStorage', SESSION_KEY, raw);
+    safeRemove('sessionStorage', SESSION_KEY);
+  } else {
+    safeSet('sessionStorage', SESSION_KEY, raw);
+    safeRemove('localStorage', SESSION_KEY);
+  }
+}
+function forgetSession() {
+  session = null;
+  safeRemove('localStorage', SESSION_KEY);
+  safeRemove('sessionStorage', SESSION_KEY);
+}
+function readAccount() {
+  var raw = safeGet('localStorage', ACCOUNT_KEY);
+  if (!raw) return null;
+  try {
     var rec = JSON.parse(raw);
     return rec && rec.hash && rec.salt ? rec : null;
   } catch (e) { return null; }
 }
-function writePinRecord(rec) {
-  try { localStorage.setItem(PIN_KEY, JSON.stringify(rec)); return true; }
-  catch (e) { console.warn('PIN not saved', e); return false; }
-}
-function clearPinRecord() {
-  try { localStorage.removeItem(PIN_KEY); } catch (e) {}
-  pinState.record = null;
-}
+function writeAccount(rec) { return safeSet('localStorage', ACCOUNT_KEY, JSON.stringify(rec)); }
+function clearAccount() { safeRemove('localStorage', ACCOUNT_KEY); }
+function readCacheOwner() { return safeGet('localStorage', CACHE_OWNER_KEY) || ''; }
+function writeCacheOwner(id) { if (id) safeSet('localStorage', CACHE_OWNER_KEY, id); }
+
+/* --- password hashing for the local (offline) account --------------------- */
 function randomSalt() {
   var out = '';
   try {
@@ -3992,7 +4071,7 @@ function fallbackHash(value, salt) {
   }
   return ('00000000' + h1.toString(16)).slice(-8) + ('00000000' + h2.toString(16)).slice(-8);
 }
-async function computePinHash(value, salt, prefer) {
+async function hashSecret(value, salt, prefer) {
   var subtle = window.crypto && window.crypto.subtle;
   if (prefer !== 'xfnv' && subtle && window.TextEncoder && window.Uint8Array) {
     try {
@@ -4005,261 +4084,530 @@ async function computePinHash(value, salt, prefer) {
   }
   return { algo: 'xfnv', hash: fallbackHash(String(value), salt) };
 }
-async function setPinRecord(value) {
-  var salt = randomSalt();
-  var made = await computePinHash(value, salt);
-  var rec = { v: 1, algo: made.algo, salt: salt, hash: made.hash, at: new Date().toISOString() };
-  if (!writePinRecord(rec)) return false;
-  pinState.record = rec;
-  return true;
-}
-async function checkPin(value) {
-  var rec = pinState.record || readPinRecord();
-  if (!rec) return true;
-  var first = await computePinHash(value, rec.salt, rec.algo);
+async function verifyLocalPassword(password, rec) {
+  if (!rec) return false;
+  var first = await hashSecret(password, rec.salt, rec.algo);
   if (first.hash === rec.hash) return true;
   if (first.algo !== rec.algo) {
-    var fb = await computePinHash(value, rec.salt, 'xfnv');
+    var fb = await hashSecret(password, rec.salt, 'xfnv');
     if (fb.hash === rec.hash) return true;
   }
   return false;
 }
-function lockHelpHTML() {
-  return '<div class="lock-help">' +
-    '<b>Forgot your PIN?</b>' +
-    'Your PIN cannot be shown or recovered. The only way to reset it is to restore a backup file.' +
-    '<button class="btn block" data-act="pin-restore">' + icon('upload', 18) + ' Restore a backup</button>' +
-    '<button class="btn ghost block" data-act="pin-help-close">Back to PIN</button>' +
-    '<input type="file" id="lockRestoreFile" accept="application/json,.json" style="display:none">' +
-    '</div>';
-}
-function lockHTML() {
-  var isSetup = pinState.mode === 'setup' || pinState.mode === 'confirm';
-  var title = pinState.mode === 'setup' ? 'Set your 4-digit PIN'
-    : pinState.mode === 'confirm' ? 'Confirm your PIN' : 'Enter your PIN';
-  var sub = pinState.mode === 'setup'
-    ? 'Choose 4 digits to keep your hostel data private.'
-    : pinState.mode === 'confirm'
-      ? 'Type the same 4 digits again.'
-      : pinState.mode === 'verify'
-        ? 'Confirm it is you before erasing everything.'
-        : 'Welcome back' + (db.settings.ownerName ? ', ' + String(db.settings.ownerName).split(' ')[0] : '') + '.';
-  var dots = [0, 1, 2, 3].map(function (i) {
-    return '<span class="' + (i < pinState.entry.length ? 'on' : '') + '"></span>';
-  }).join('');
-  var keys = '';
-  [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(function (n) {
-    keys += '<button class="lock-key" data-act="pin-digit" data-digit="' + n + '" aria-label="' + n + '">' + n + '</button>';
+
+/* --- HTTP --------------------------------------------------------------- */
+function httpJSON(url, opts, ms) {
+  var options = Object.assign({ headers: {} }, opts || {});
+  var fetcher = (typeof window.fetch === 'function') ? window.fetch.bind(window) : null;
+  if (!fetcher) return Promise.reject(new Error('This browser cannot reach the internet'));
+  return new Promise(function (resolve, reject) {
+    var timer = null, controller = null, done = false;
+    if (typeof AbortController === 'function') controller = new AbortController();
+    if (controller && !options.signal) options.signal = controller.signal;
+    if (ms) {
+      timer = setTimeout(function () {
+        if (done) return;
+        done = true;
+        if (controller) { try { controller.abort(); } catch (e) {} }
+        var err = new Error('The internet is slow. Saved locally.');
+        err.timeout = true;
+        reject(err);
+      }, ms);
+    }
+    function finish(fn, value) {
+      if (done) return;
+      done = true;
+      if (timer) clearTimeout(timer);
+      fn(value);
+    }
+    fetcher(url, options).then(function (res) {
+      return res.text().then(function (body) {
+        var data = null;
+        try { data = body ? JSON.parse(body) : null; } catch (e) { data = null; }
+        if (!res.ok) {
+          var msg = (data && (data.msg || data.error_description || data.error || data.message || data.hint || data.details)) || ('Request failed (' + res.status + ')');
+          var err = new Error(msg);
+          err.status = res.status;
+          finish(reject, err);
+          return null;
+        }
+        finish(resolve, data);
+        return null;
+      });
+    }, function (err) {
+      var e2 = new Error('Cannot reach the cloud. Saved locally.');
+      e2.offline = true;
+      e2.cause = err;
+      finish(reject, e2);
+    }).catch(function (err) { finish(reject, err); });
   });
-  var body = pinState.showHelp ? lockHelpHTML()
-    : '<div class="lock-keypad">' + keys +
-        '<span class="lock-key blank"></span>' +
-        '<button class="lock-key" data-act="pin-digit" data-digit="0" aria-label="0">0</button>' +
-        '<button class="lock-key delete" data-act="pin-delete" aria-label="Delete last digit">' + icon('x', 20) + '</button>' +
-      '</div>' +
-      (pinState.mode === 'locked'
-        ? '<button class="lock-link" data-act="pin-help">Forgot PIN?</button>'
-        : pinState.mode === 'verify'
-          ? '<button class="lock-link" data-act="pin-cancel">Cancel</button>'
-          : '');
-  return '<div class="lock-screen" data-mode="' + pinState.mode + '">' +
-    '<div class="lock-glow"></div>' +
-    '<div class="lock-inner">' +
-    '<div class="lock-mark">' + icon('lock', 26) + '</div>' +
-    '<div class="lock-brand">HOSTEL MANAGER</div>' +
-    '<div class="lock-title">' + title + '</div>' +
-    '<div class="lock-sub">' + esc(sub) + '</div>' +
-    '<div class="pin-dots' + (pinState.error ? ' error' : '') + (pinState.shake ? ' shake' : '') + '">' + dots + '</div>' +
-    '<div class="lock-msg">' + esc(pinState.error || ' ') + '</div>' +
-    body +
-    '</div>' +
-    '<div class="lock-foot">' + (isSetup ? 'You can change this later in Settings.' : 'Your data stays on this phone.') + '</div>' +
-    '</div>';
 }
-function renderLock() {
-  var layer = $('#lockLayer');
-  if (!layer) return;
-  if (pinState.mode === 'none') {
-    layer.classList.remove('open');
-    layer.innerHTML = '';
-    return;
-  }
-  layer.classList.add('open');
-  layer.innerHTML = lockHTML();
+function cloudHeaders(extra) {
+  return Object.assign({
+    apikey: cloud.config.key,
+    Authorization: 'Bearer ' + ((session && session.access_token) || cloud.config.key),
+    'Content-Type': 'application/json'
+  }, extra || {});
 }
-function showLock(mode) {
-  pinState.mode = mode;
-  pinState.entry = '';
-  pinState.first = '';
-  pinState.error = '';
-  pinState.showHelp = false;
-  pinState.busy = false;
-  pinState.shake = false;
-  pinState.attempts = 0;
-  pinState.blockedUntil = 0;
-  document.body.classList.add('is-locked');
-  renderLock();
+function cloudEmailFor(username) {
+  var u = String(username || '').trim().toLowerCase();
+  if (u.indexOf('@') === -1) u += '@' + (cloud.config.domain || 'hostel.local');
+  return u;
 }
-function hideLock() {
-  var was = pinState.mode !== 'none';
-  pinState.mode = 'none';
-  pinState.entry = '';
-  pinState.first = '';
-  pinState.error = '';
-  pinState.showHelp = false;
-  pinState.afterVerify = null;
-  renderLock();
-  if (was && !ui.sheet && !ui.confirm) document.body.classList.remove('is-locked');
+function shortUsername(email) {
+  var e = String(email || '');
+  return e.replace(new RegExp('@' + (cloud.config.domain || 'hostel.local').replace(/\./g, '\\.') + '$', 'i'), '') || e;
 }
-function lockApp() {
-  if (pinState.mode !== 'none') return;
-  if (!readPinRecord()) return;
-  try { closeSheet(); } catch (e) {}
-  try { closeConfirm(); } catch (e) {}
-  ui.revealedIds = {};
-  ui.restoreResetPin = false;
-  showLock('locked');
-}
-function initLock() {
-  pinState.record = readPinRecord();
-  if (pinState.record) showLock('locked');
-  else showLock('setup');
-}
-function pinPress(digit) {
-  if (pinState.mode === 'none' || pinState.busy || pinState.showHelp) return;
-  if (pinState.blockedUntil && Date.now() < pinState.blockedUntil) {
-    var left = Math.ceil((pinState.blockedUntil - Date.now()) / 1000);
-    pinState.error = 'Too many tries. Wait ' + left + ' seconds.';
-    renderLock();
-    return;
-  }
-  if (pinState.entry.length >= 4) return;
-  pinState.entry += String(digit);
-  pinState.error = '';
-  renderLock();
-  if (pinState.entry.length === 4) {
-    pinState.busy = true;
-    setTimeout(onPinComplete, 140);
-  }
-}
-function pinBackspace() {
-  if (pinState.mode === 'none' || pinState.busy) return;
-  pinState.entry = pinState.entry.slice(0, -1);
-  pinState.error = '';
-  renderLock();
-}
-async function onPinComplete() {
-  var entered = pinState.entry;
-  var mode = pinState.mode;
-  if (mode === 'setup') {
-    pinState.first = entered;
-    pinState.mode = 'confirm';
-    pinState.entry = '';
-    pinState.busy = false;
-    pinState.error = '';
-    renderLock();
-    return;
-  }
-  if (mode === 'confirm') {
-    if (entered !== pinState.first) {
-      pinState.mode = 'setup';
-      pinState.first = '';
-      pinState.entry = '';
-      pinState.busy = false;
-      pinState.error = 'Those digits did not match. Try again.';
-      pinState.shake = true;
-      renderLock();
-      setTimeout(function () { pinState.shake = false; if (pinState.mode !== 'none') renderLock(); }, 360);
-      return;
-    }
-    var saved = await setPinRecord(entered);
-    pinState.busy = false;
-    if (!saved) {
-      // Never trap the owner outside their own data: run unlocked and say so.
-      hideLock();
-      render();
-      toast('This phone could not save a PIN, so the app cannot lock.', 'bad');
-      return;
-    }
-    hideLock();
-    render();
-    toast('PIN set \u00B7 keep it safe', 'good');
-    return;
-  }
-  // locked or verifying before a sensitive action
-  var good = await checkPin(entered);
-  pinState.busy = false;
-  if (good) {
-    pinState.attempts = 0;
-    pinState.blockedUntil = 0;
-    var after = pinState.afterVerify;
-    hideLock();
-    render();
-    if (mode === 'verify' && typeof after === 'function') after();
-    return;
-  }
-  pinState.attempts += 1;
-  pinState.entry = '';
-  pinState.error = 'Incorrect PIN. Try again.';
-  if (pinState.attempts >= 5) {
-    pinState.attempts = 0;
-    pinState.blockedUntil = Date.now() + 30000;
-    pinState.error = 'Too many tries. Wait 30 seconds.';
-  }
-  pinState.shake = true;
-  renderLock();
-  setTimeout(function () { pinState.shake = false; if (pinState.mode !== 'none') renderLock(); }, 360);
-  if (pinState.blockedUntil) {
-    setTimeout(function () {
-      if (pinState.mode !== 'none') { pinState.error = ''; renderLock(); }
-    }, 30500);
-  }
-}
-function requestPinVerify(onOk) {
-  if (!readPinRecord()) { if (typeof onOk === 'function') onOk(); return; }
-  pinState.afterVerify = onOk || null;
-  showLock('verify');
-}
-function focusPinRestore(which) {
-  ui.restoreResetPin = true;
-  var el = $('#' + which);
-  if (el) el.click();
+function sessionName() {
+  if (!session) return 'Not signed in';
+  return session.user.username || session.user.email || 'Owner';
 }
 
-/* --- change PIN sheet --- */
-function sheetChangePin() {
-  var body = '<form data-form="changePin" novalidate>' +
-    '<div class="sheet-body">' +
-    '<div class="field"><label>Current PIN</label><input class="input pin-input" type="password" name="current" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="4 digits"><div class="field-error"></div></div>' +
-    '<div class="field"><label>New PIN</label><input class="input pin-input" type="password" name="next" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits"><div class="field-error"></div></div>' +
-    '<div class="field"><label>Confirm new PIN</label><input class="input pin-input" type="password" name="confirm" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits"><div class="field-error"></div></div>' +
-    '<div class="card tight" style="margin-top:8px;background:#FFF7ED;border:1px solid #FDE3C0;box-shadow:none">' +
-    '<div class="small" style="color:#92400E;line-height:1.5"><b>Forgot the current PIN?</b><br>It cannot be shown. The only way to reset it is to restore a backup file.</div>' +
-    '<button type="button" class="btn ghost sm block" style="margin-top:10px" data-act="pin-reset-restore">' + icon('upload', 17) + ' Restore a backup</button>' +
-    '</div>' +
-    '<div class="field-hint">You will need this PIN each time the app opens.</div>' +
-    '<div style="height:6px"></div></div>' +
-    '<div class="sheet-foot"><button class="btn block" type="submit">Save new PIN</button></div>' +
-    '</form>';
-  return sheetShell({ title: 'Change PIN', sub: 'Keep your hostel data private', body: body });
+/* --- sign in / sign up --------------------------------------------------- */
+function sessionFromAuth(json) {
+  var user = (json && json.user) || {};
+  return {
+    v: 1,
+    cloud: true,
+    access_token: json.access_token || '',
+    refresh_token: json.refresh_token || '',
+    expires_at: Date.now() + (num(json.expires_in) || 3600) * 1000,
+    user: { id: user.id || '', email: user.email || '', username: shortUsername(user.email || '') }
+  };
 }
-async function saveChangePinForm(form) {
+async function localSignup(username, password) {
+  if (readAccount()) throw new Error('This device already has an account. Sign in instead.');
+  var salt = randomSalt();
+  var made = await hashSecret(password, salt);
+  var rec = { v: 1, username: String(username).toLowerCase(), algo: made.algo, salt: salt, hash: made.hash, at: new Date().toISOString() };
+  if (!writeAccount(rec)) throw new Error('This browser could not save the account. Check storage settings.');
+  return { v: 1, cloud: false, stay: true, user: { id: 'local', username: rec.username, email: '' } };
+}
+async function localSignin(username, password) {
+  var rec = readAccount();
+  if (!rec) throw new Error('No account on this device yet. Create one below.');
+  if (rec.username && rec.username !== String(username).trim().toLowerCase()) throw new Error('That is not the account on this device.');
+  var good = await verifyLocalPassword(password, rec);
+  if (!good) throw new Error('Incorrect password. Try again.');
+  return { v: 1, cloud: false, stay: true, user: { id: 'local', username: rec.username, email: '' } };
+}
+async function signInWithPassword(username, password, stay) {
+  if (!cloud.config.configured) {
+    var local = await localSignin(username, password);
+    local.stay = !!stay;
+    return local;
+  }
+  var json = await httpJSON(cloud.config.url + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: cloudEmailFor(username), password: String(password) })
+  }, 20000);
+  if (!json || !json.access_token) throw new Error('Could not sign in. Check your username and password.');
+  var s = sessionFromAuth(json);
+  s.stay = !!stay;
+  return s;
+}
+async function signUpWithPassword(username, password, stay) {
+  if (!cloud.config.configured) {
+    var local = await localSignup(username, password);
+    local.stay = !!stay;
+    return local;
+  }
+  var json = await httpJSON(cloud.config.url + '/auth/v1/signup', {
+    method: 'POST',
+    headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: cloudEmailFor(username), password: String(password) })
+  }, 20000);
+  if (json && json.access_token) {
+    var s = sessionFromAuth(json);
+    s.stay = !!stay;
+    return s;
+  }
+  var pending = new Error('Account created. Check your email to confirm it, then sign in.');
+  pending.needsConfirm = true;
+  throw pending;
+}
+async function refreshSessionToken() {
+  if (!session || !session.cloud || !session.refresh_token) return false;
+  try {
+    var json = await httpJSON(cloud.config.url + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: session.refresh_token })
+    }, 15000);
+    if (json && json.access_token) {
+      var fresh = sessionFromAuth(json);
+      fresh.stay = !!session.stay;
+      session = fresh;
+      writeSession(session);
+      return true;
+    }
+  } catch (e) { cloud.error = e.message; }
+  return false;
+}
+async function ensureToken() {
+  if (!session || !session.cloud) return false;
+  if (!session.access_token) return false;
+  if (!session.expires_at || session.expires_at - Date.now() > 60000) return true;
+  return refreshSessionToken();
+}
+
+/* --- cloud data ---------------------------------------------------------- */
+function cloudRowUrl() {
+  return cloud.config.url + '/rest/v1/' + encodeURIComponent(cloud.config.table) +
+    '?user_id=eq.' + encodeURIComponent(session.user.id) + '&select=data,updated_at';
+}
+async function cloudGet() {
+  await ensureToken();
+  var rows = await httpJSON(cloudRowUrl(), { method: 'GET', headers: cloudHeaders() }, 15000);
+  if (!Array.isArray(rows) || !rows.length) return null;
+  return rows[0];
+}
+async function cloudPut() {
+  await ensureToken();
+  var url = cloud.config.url + '/rest/v1/' + encodeURIComponent(cloud.config.table) + '?on_conflict=user_id';
+  await httpJSON(url, {
+    method: 'POST',
+    headers: cloudHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify([{ user_id: session.user.id, data: db, updated_at: new Date().toISOString() }])
+  }, 20000);
+  return true;
+}
+function setSyncStatus(status, err) {
+  cloud.status = status;
+  cloud.error = err || '';
+  cloud.at = Date.now();
+  refreshSyncUi();
+}
+function syncStatusText() {
+  if (!cloud.config.configured) {
+    return { label: 'Cloud sync off', hint: 'Saved on this phone only \u00B7 add Supabase keys to sync', tone: 'neutral' };
+  }
+  if (!session || !session.cloud) {
+    return { label: 'Local account', hint: 'Data stays on this phone \u00B7 sign in with cloud to sync', tone: 'neutral' };
+  }
+  if (cloud.status === 'saving') return { label: 'Syncing\u2026', hint: 'Sending your latest changes', tone: 'neutral' };
+  if (cloud.status === 'offline') return { label: 'Offline \u2013 saved locally', hint: 'Will sync when the internet comes back', tone: 'warn' };
+  if (cloud.status === 'error') return { label: 'Not synced \u2013 saved locally', hint: (cloud.error || 'Cloud sync failed') + '', tone: 'warn' };
+  if (cloud.status === 'synced') return { label: 'Synced', hint: 'All changes saved to the cloud', tone: 'good' };
+  return { label: 'Cloud sync ready', hint: 'Changes sync automatically', tone: 'neutral' };
+}
+function syncStatusHTML() {
+  var st = syncStatusText();
+  var color = st.tone === 'good' ? 'var(--green)' : st.tone === 'warn' ? '#B45309' : '#64748B';
+  var bg = st.tone === 'good' ? 'var(--green-bg)' : st.tone === 'warn' ? '#FFF7ED' : '#F1F5F9';
+  return '<span class="si" style="background:' + bg + ';color:' + color + '">' + icon(st.tone === 'good' ? 'checkCircle' : st.tone === 'warn' ? 'alert' : 'cloud', 18) + '</span>' +
+    '<span class="grow"><span class="st">' + esc(st.label) + '</span><span class="ss">' + esc(st.hint) + '</span></span>' +
+    (st.tone === 'good' ? '<span class="badge paid">' + icon('check', 12) + '</span>' : '');
+}
+function refreshSyncUi() {
+  var node = document.getElementById('syncStatus');
+  if (node) node.innerHTML = syncStatusHTML();
+}
+function isOnline() {
+  try { return navigator.onLine !== false; } catch (e) { return true; }
+}
+function scheduleCloudSync() {
+  if (!session || !session.cloud || !cloud.config.configured) return;
+  if (cloud.applying) return;
+  cloud.pending = true;
+  setSyncStatus(isOnline() ? 'saving' : 'offline');
+  if (cloud.timer) clearTimeout(cloud.timer);
+  cloud.timer = setTimeout(function () { cloud.timer = null; syncNow(); }, 1200);
+}
+async function syncNow(opts) {
+  opts = opts || {};
+  if (!session || !session.cloud || !cloud.config.configured) return false;
+  if (!isOnline()) { setSyncStatus('offline'); return false; }
+  var dirty = !!(cloud.pending || cloud.timer);
+  if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
+  setSyncStatus('saving');
+  try {
+    if (opts.pull && !dirty) {
+      var row = await cloudGet();
+      var remoteAt = row && row.updated_at ? Date.parse(row.updated_at) : 0;
+      var localAt = db.meta && db.meta.syncedAt ? Date.parse(db.meta.syncedAt) : 0;
+      if (row && row.data && row.data.residents && remoteAt > localAt) {
+        applyRemote(row);
+        cloud.pending = false;
+        setSyncStatus('synced');
+        return true;
+      }
+    }
+    await cloudPut();
+    db.meta.syncedAt = new Date().toISOString();
+    saveLocalOnly();
+    cloud.pending = false;
+    setSyncStatus('synced');
+    return true;
+  } catch (e) {
+    cloud.pending = true;
+    setSyncStatus(e.offline || e.timeout || !isOnline() ? 'offline' : 'error', e.message);
+    return false;
+  }
+}
+function applyRemote(row) {
+  cloud.applying = true;
+  try {
+    db = upgrade(row.data);
+    ensureBedsForRooms(db);
+    reconcileBeds();
+    ensureDues();
+    db.meta.syncedAt = row.updated_at || new Date().toISOString();
+    saveLocalOnly();
+    ui.prop = 'all';
+    ui.payMonth = thisMonth();
+    ui.tab = 'home';
+    ui.view = { name: 'home', params: {} };
+    applyUiPrefs();
+    render();
+  } finally {
+    cloud.applying = false;
+  }
+}
+function saveLocalOnly() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    return true;
+  } catch (e) { console.warn('Save failed', e); return false; }
+}
+
+/* --- the sign-in screen -------------------------------------------------- */
+function authInitialMode() {
+  if (cloud.config.configured) return 'login';
+  return readAccount() ? 'login' : 'signup';
+}
+function authNoteHTML() {
+  if (cloud.config.configured) {
+    return 'Signed in as <b>' + esc(authState.username || 'you') + '</b>? Your hostel data follows you to any phone.';
+  }
+  return 'Cloud sync is off. Add <b>SUPABASE_URL</b> and <b>SUPABASE_ANON_KEY</b> at the top of index.html to use the same data on any phone. Until then the account and data stay on this device.';
+}
+function renderAuth() {
+  var layer = $('#authLayer');
+  if (!layer) return;
+  if (!authState.visible) {
+    layer.classList.remove('open');
+    layer.innerHTML = '';
+    document.body.classList.remove('is-locked');
+    return;
+  }
+  var isSignup = authState.mode === 'signup';
+  var title = isSignup ? 'Create your account' : 'Welcome back';
+  var sub = isSignup
+    ? (cloud.config.configured ? 'Choose a username and password. Your hostel data is saved to your account.' : 'Choose a username and password for this device.')
+    : 'Sign in to open your hostel.';
+  var form = '<form data-form="login" novalidate>' +
+    '<input type="hidden" name="mode" value="' + (isSignup ? 'signup' : 'login') + '">' +
+    '<div class="field"><label>Username or email</label>' +
+    '<input class="input" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + (cloud.config.configured ? 'you@example.com or yourname' : 'yourname') + '" value="' + attr(authState.username) + '">' +
+    '<div class="field-error"></div></div>' +
+    '<div class="field"><label>Password</label>' +
+    '<input class="input" type="password" name="password" autocomplete="' + (isSignup ? 'new-password' : 'current-password') + '" placeholder="' + (isSignup ? 'At least 6 characters' : 'Your password') + '">' +
+    '<div class="field-error"></div></div>' +
+    (isSignup ? '<div class="field"><label>Confirm password</label>' +
+      '<input class="input" type="password" name="confirm" autocomplete="new-password" placeholder="Type it again"><div class="field-error"></div></div>' : '') +
+    '<label class="auth-check"><input type="checkbox" name="stay" checked><span>Stay signed in on this device</span></label>' +
+    '<div class="auth-msg' + (authState.notice ? ' ok' : '') + '">' + esc(authState.notice || authState.error || ' ') + '</div>' +
+    '<button class="btn block" type="submit"' + (authState.busy ? ' disabled' : '') + '>' +
+    (authState.busy ? 'Please wait\u2026' : isSignup ? 'Create account' : 'Sign in') + '</button>' +
+    '</form>';
+  layer.classList.add('open');
+  layer.innerHTML = '<div class="auth-screen">' +
+    '<div class="auth-glow"></div>' +
+    '<div class="auth-inner">' +
+    '<div class="auth-mark">' + icon('building', 26) + '</div>' +
+    '<div class="auth-brand">HOSTEL MANAGER</div>' +
+    '<div class="auth-title">' + esc(title) + '</div>' +
+    '<div class="auth-sub">' + esc(sub) + '</div>' +
+    '<div class="auth-card">' + form + '</div>' +
+    '<div class="auth-links">' +
+    '<button class="auth-link" data-act="auth-toggle">' + (isSignup ? 'Already have an account? Sign in' : 'New here? Create an account') + '</button>' +
+    '<button class="auth-link" data-act="auth-forgot">Forgot password?</button>' +
+    '</div>' +
+    '<div class="auth-foot">' + authNoteHTML() + '</div>' +
+    '</div></div>';
+  document.body.classList.add('is-locked');
+}
+function showAuth(mode) {
+  authState.visible = true;
+  authState.mode = mode || authState.mode || authInitialMode();
+  authState.error = '';
+  authState.notice = '';
+  authState.busy = false;
+  renderAuth();
+}
+function hideAuth() {
+  authState.visible = false;
+  authState.error = '';
+  authState.busy = false;
+  renderAuth();
+}
+function authError(msg) {
+  authState.error = msg;
+  authState.notice = '';
+  authState.busy = false;
+  renderAuth();
+}
+async function saveLoginForm(form) {
   clearErrors(form);
-  var cur = String(form.elements['current'].value || '').trim();
-  var nxt = String(form.elements['next'].value || '').trim();
-  var cfm = String(form.elements['confirm'].value || '').trim();
+  var mode = val(form, 'mode') === 'signup' ? 'signup' : 'login';
+  var username = val(form, 'username');
+  var passEl = form.elements['password'];
+  var password = String(passEl ? passEl.value : '');
+  var stayEl = form.elements['stay'];
+  var stay = stayEl ? !!stayEl.checked : true;
   var ok = true;
-  if (!/^\d{4}$/.test(cur)) ok = setError(fieldOf(form.elements['current']), 'Enter your current 4-digit PIN');
-  if (ok && !/^\d{4}$/.test(nxt)) ok = setError(fieldOf(form.elements['next']), 'Use exactly 4 digits');
-  if (ok && nxt === cur) ok = setError(fieldOf(form.elements['next']), 'Choose a different PIN');
-  if (ok && nxt !== cfm) ok = setError(fieldOf(form.elements['confirm']), 'The new PINs do not match');
+  if (!username) ok = setError(fieldOf(form.elements['username']), 'Enter your username or email');
+  if (!password) ok = setError(fieldOf(passEl), 'Enter your password');
+  if (mode === 'signup') {
+    if (ok && password.length < 6) ok = setError(fieldOf(passEl), 'Use at least 6 characters');
+    var cfmEl = form.elements['confirm'];
+    if (ok && cfmEl && cfmEl.value !== password) ok = setError(fieldOf(cfmEl), 'The passwords do not match');
+  }
   if (!ok) return;
-  var good = await checkPin(cur);
-  if (!good) { setError(fieldOf(form.elements['current']), 'That is not the current PIN'); return; }
-  var saved = await setPinRecord(nxt);
-  if (!saved) { toast('Could not save the new PIN', 'bad'); return; }
-  closeSheet();
-  toast('PIN changed', 'good');
+  authState.username = username;
+  authState.error = '';
+  authState.notice = '';
+  authState.busy = true;
+  renderAuth();
+  try {
+    var next = mode === 'signup' ? await signUpWithPassword(username, password, stay) : await signInWithPassword(username, password, stay);
+    await startSession(next);
+  } catch (err) {
+    if (err && err.needsConfirm) {
+      authState.mode = 'login';
+      authState.notice = err.message;
+      authState.busy = false;
+      renderAuth();
+      return;
+    }
+    authError(err && err.message ? err.message : 'Could not sign in. Please try again.');
+  }
+}
+async function startSession(next) {
+  session = next;
+  if (session.cloud) session.stay = !!session.stay;
+  writeSession(session);
+  authState.busy = false;
+  hideAuth();
+  applyUiPrefs();
+  render();
+  window.scrollTo(0, 0);
+  if (!session.cloud) {
+    setSyncStatus('local');
+    toast('Signed in \u00B7 ' + (cloud.config.configured ? 'local account' : 'saved on this phone'), 'good');
+    return;
+  }
+  var previousOwner = readCacheOwner();
+  if (previousOwner && previousOwner !== session.user.id) {
+    // A different account was cached on this device: never upload its data.
+    db = blankDB();
+    ensureBedsForRooms(db);
+    reconcileBeds();
+    saveLocalOnly();
+    render();
+  }
+  writeCacheOwner(session.user.id);
+  setSyncStatus('saving');
+  try {
+    var row = await cloudGet();
+    if (row && row.data && Array.isArray(row.data.residents)) {
+      applyRemote(row);
+      setSyncStatus('synced');
+      toast('Loaded your hostel data from the cloud', 'good');
+    } else {
+      await cloudPut();
+      db.meta.syncedAt = new Date().toISOString();
+      saveLocalOnly();
+      cloud.pending = false;
+      setSyncStatus('synced');
+      toast('Your hostel data is now saved to the cloud', 'good');
+    }
+  } catch (e) {
+    setSyncStatus(e.offline || e.timeout || !isOnline() ? 'offline' : 'error', e.message);
+    toast('Signed in \u00B7 offline, using data on this phone', 'bad');
+  }
+}
+function signOutNow() {
+  var wasCloud = !!(session && session.cloud);
+  if (wasCloud) {
+    var token = session.access_token;
+    try {
+      httpJSON(cloud.config.url + '/auth/v1/logout', {
+        method: 'POST',
+        headers: { apikey: cloud.config.key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: '{}'
+      }, 6000).catch(function () {});
+    } catch (e) {}
+  }
+  if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
+  cloud.pending = false;
+  forgetSession();
+  authState.mode = authInitialMode();
+  authState.username = '';
+  ui.tab = 'home';
+  ui.view = { name: 'home', params: {} };
+  showAuth();
+  toast('Signed out', 'good');
+}
+async function forgotPasswordFlow() {
+  if (!cloud.config.configured) {
+    askConfirm({
+      title: 'Forgot your password?',
+      icon: 'key',
+      message: 'This device has a local account and there is no password reset.<br><br>If you still have the app open on another phone, the data is there. Otherwise create a new account \u2014 your hostel data stays on this phone.',
+      confirmLabel: 'Create a new account',
+      danger: false,
+      onYes: function () {
+        clearAccount();
+        closeConfirm();
+        showAuth('signup');
+        toast('Choose a new username and password', 'good');
+      }
+    });
+    return;
+  }
+  var email = (authState.username || '').indexOf('@') >= 0 ? authState.username : '';
+  if (!email) {
+    authError('Type your email above, then tap Forgot password again.');
+    return;
+  }
+  try {
+    await httpJSON(cloud.config.url + '/auth/v1/recover', {
+      method: 'POST',
+      headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    }, 15000);
+    authState.notice = 'Password reset link sent to ' + email + '. Check your inbox.';
+    authState.error = '';
+    renderAuth();
+  } catch (e) {
+    authError(e.message || 'Could not send the reset email.');
+  }
+}
+function initAuth() {
+  cloud.config = readCloudConfig();
+  session = readSession();
+  if (!session) {
+    authState.mode = authInitialMode();
+    showAuth(authState.mode);
+    setSyncStatus(cloud.config.configured ? 'offline' : 'local');
+    return;
+  }
+  hideAuth();
+  setSyncStatus(session.cloud ? 'saving' : 'local');
+  if (session.cloud) {
+    // Read the cache straight away, then reconcile with the cloud.
+    syncNow({ pull: true }).then(function (ok) {
+      if (!ok && !isOnline()) setSyncStatus('offline');
+    });
+  }
+}
+function refreshAuthOnShow() {
+  if (!session) return;
+  if (session.cloud && session.expires_at && session.expires_at - Date.now() < 120000) refreshSessionToken();
+  if (session.cloud && cloud.config.configured && isOnline() && !cloud.timer) syncNow({ pull: true });
 }
 
 /* ===========================================================================
@@ -4367,8 +4715,8 @@ document.addEventListener('click', function (e) {
   var el = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!el) return;
   var act = el.getAttribute('data-act');
-  // While the PIN screen is up, nothing behind it may be used.
-  if (pinState.mode !== 'none' && act.indexOf('pin-') !== 0 && act !== 'confirm-yes' && act !== 'confirm-no') return;
+  // While the sign-in screen is up, nothing behind it may be used.
+  if (authState.visible && act.indexOf('auth-') !== 0) return;
   var id = el.getAttribute('data-id');
   try {
     switch (act) {
@@ -4688,11 +5036,26 @@ document.addEventListener('click', function (e) {
       case 'share-backup':
         shareBackup();
         break;
-      case 'pin-cancel':
-        hideLock();
+      case 'auth-toggle':
+        authState.mode = authState.mode === 'signup' ? 'login' : 'signup';
+        authState.error = '';
+        authState.notice = '';
+        renderAuth();
         break;
-      case 'change-pin':
-        openSheet('changePin');
+      case 'auth-forgot':
+        forgotPasswordFlow();
+        break;
+      case 'logout':
+        askConfirm({
+          title: 'Log out?',
+          icon: 'logout',
+          message: 'Your data stays safe' + (cloud.config.configured && session && session.cloud ? ' in the cloud — sign in again on any phone.' : ' on this phone.') + '<br><br>You will need your password to open the hostel again.',
+          confirmLabel: 'Log out',
+          onYes: function () { closeConfirm(); signOutNow(); }
+        });
+        break;
+      case 'sync-now':
+        syncNow({ pull: false });
         break;
       case 'toggle-large-text':
         toggleLargeText();
@@ -4706,26 +5069,6 @@ document.addEventListener('click', function (e) {
       case 'receipt-done':
         closeSheet();
         render();
-        break;
-      case 'pin-digit':
-        pinPress(el.getAttribute('data-digit'));
-        break;
-      case 'pin-delete':
-        pinBackspace();
-        break;
-      case 'pin-help':
-        pinState.showHelp = true;
-        renderLock();
-        break;
-      case 'pin-help-close':
-        pinState.showHelp = false;
-        renderLock();
-        break;
-      case 'pin-restore':
-        focusPinRestore('lockRestoreFile');
-        break;
-      case 'pin-reset-restore':
-        focusPinRestore('restoreFile');
         break;
       case 'restore':
         var rf = $('#restoreFile');
@@ -4774,7 +5117,7 @@ document.addEventListener('submit', function (e) {
     else if (kind === 'hostelSettings') saveHostelSettings(form);
     else if (kind === 'elecBill') saveElecBillForm(form);
     else if (kind === 'electricity') saveElectricityForm(form);
-    else if (kind === 'changePin') saveChangePinForm(form);
+    else if (kind === 'login') saveLoginForm(form);
   } catch (err) {
     console.error('Form save failed', err);
     toast('Could not save. Please check the details.', 'bad');
@@ -4782,11 +5125,6 @@ document.addEventListener('submit', function (e) {
 });
 
 document.addEventListener('input', function (e) {
-  if (e.target && e.target.classList && e.target.classList.contains('pin-input')) {
-    var clean = String(e.target.value || '').replace(/\D/g, '').slice(0, 4);
-    if (clean !== e.target.value) e.target.value = clean;
-    return;
-  }
   if (e.target && e.target.id === 'resSearch') {
     ui.resQuery = e.target.value;
     var list = $('#resList');
@@ -4934,7 +5272,7 @@ function saveRoomForm(form) {
     if (!room) return;
     var occupiedBeds = bedsOfRoom(room.id).filter(function (b) { return !!residentAtBed(b.id); }).length;
     if (bedsN < occupiedBeds) {
-      setError(fieldOf(form.elements['beds']), 'This room has ' + occupiedBeds + ' residents. Vacate first.');
+      setError(fieldOf(form.elements['beds']), 'This room has ' + plural(occupiedBeds, 'resident') + '. Vacate first.');
       return;
     }
     Object.assign(room, { number: number, propertyId: propertyId, floor: floor, sharing: sharing, beds: bedsN, rent: rent, ac: ac });
@@ -5001,34 +5339,21 @@ function setupSWUpdates() {
     });
   });
 }
-function setupLockWatch() {
+function setupSessionWatch() {
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden') {
-      if (pinState.mode === 'none') lockHiddenAt = Date.now();
-      return;
-    }
-    if (document.visibilityState === 'visible') {
-      var away = lockHiddenAt ? Date.now() - lockHiddenAt : 0;
-      lockHiddenAt = 0;
-      if (away > PIN_TTL_MS) lockApp();
-    }
+    if (document.visibilityState === 'visible') refreshAuthOnShow();
+  });
+  window.addEventListener('online', function () {
+    if (session && session.cloud) syncNow({ pull: true });
+  });
+  window.addEventListener('offline', function () {
+    if (session && session.cloud) setSyncStatus('offline');
   });
   window.addEventListener('pagehide', function () {
-    if (pinState.mode === 'none') lockHiddenAt = Date.now();
+    if (session && session.cloud && cloud.pending) {
+      try { cloudPut(); } catch (e) {}
+    }
   });
-  window.addEventListener('pageshow', function () {
-    var away = lockHiddenAt ? Date.now() - lockHiddenAt : 0;
-    lockHiddenAt = 0;
-    if (away > PIN_TTL_MS) lockApp();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (pinState.mode === 'none') return;
-    if (/^[0-9]$/.test(e.key)) { e.preventDefault(); pinPress(e.key); }
-    else if (e.key === 'Backspace') { e.preventDefault(); pinBackspace(); }
-  });
-  window.addEventListener('pointerdown', function () {
-    if (pinState.mode === 'none') lockHiddenAt = 0;
-  }, true);
 }
 
 function init() {
@@ -5046,8 +5371,8 @@ function init() {
   render();
   requestPersistentStorage();
   setupSWUpdates();
-  setupLockWatch();
-  initLock();
+  setupSessionWatch();
+  initAuth();
 }
 
 init();
