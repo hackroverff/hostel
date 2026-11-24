@@ -113,6 +113,8 @@ var SUPABASE_TABLE = 'hostel_data';
 
 5. In **Authentication → Providers → Email** keep email sign-in enabled. A plain username like `owner` is posted to Supabase as `owner@hostel.local` (change the domain with `usernameDomain` in `HOSTEL_CONFIG`); use a real email address as the username if you want password-reset emails. Turn **Confirm email** off if you want accounts to work immediately.
 
+Tests (and a phone-only install of a build that ships with keys) switch the cloud off with `window.HOSTEL_CONFIG = { cloud: false }` — every jsdom suite does this so nothing touches the network.
+
 The anon key is public by design — row level security above is what keeps each account's data private. Never put the **service_role** key in the app.
 
 ## Rules built in

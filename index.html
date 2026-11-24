@@ -4326,6 +4326,11 @@ function readCloudConfig() {
   var ext = null;
   try { if (typeof window !== 'undefined' && window.HOSTEL_CONFIG) ext = window.HOSTEL_CONFIG; } catch (e) {}
   if (!ext) { try { var raw = localStorage.getItem(CONFIG_KEY); if (raw) ext = JSON.parse(raw); } catch (e) {} }
+  // An explicit opt-out wins over the keys above (used by the tests and by
+  // anyone who wants a phone-only install of a build that ships with keys).
+  if (ext && typeof ext === 'object' && (ext.cloud === false || ext.disable === true)) {
+    cfg.url = ''; cfg.key = '';
+  }
   if (!ext) {
     try {
       var mu = document.querySelector('meta[name="hostel-supabase-url"]');
@@ -4335,7 +4340,7 @@ function readCloudConfig() {
       }
     } catch (e) {}
   }
-  if (ext && typeof ext === 'object') {
+  if (ext && typeof ext === 'object' && !(ext.cloud === false || ext.disable === true)) {
     cfg.url = String(ext.supabaseUrl || ext.SUPABASE_URL || ext.url || cfg.url || '').trim();
     cfg.key = String(ext.supabaseAnonKey || ext.SUPABASE_ANON_KEY || ext.key || cfg.key || '').trim();
     if (ext.table) cfg.table = String(ext.table).trim();

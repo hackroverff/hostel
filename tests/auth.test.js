@@ -36,7 +36,7 @@ function boot(opts) {
     beforeParse(w) {
       w.scrollTo = () => {};
       w.print = () => {};
-      if (opts.config) w.HOSTEL_CONFIG = opts.config;
+      w.HOSTEL_CONFIG = opts.config || { cloud: false };
       if (opts.seed) w.localStorage.setItem('hostelManager.v1', JSON.stringify(opts.seed));
       Object.keys(opts.storage || {}).forEach((k) => w.localStorage.setItem(k, opts.storage[k]));
       if (opts.sessionStorage) w.sessionStorage.setItem('hostelManager.session', opts.sessionStorage);

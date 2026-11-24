@@ -21,6 +21,7 @@ function makeDom(seed) {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     beforeParse(w) {
+      w.HOSTEL_CONFIG = { cloud: false };
       w.scrollTo = () => {};
       w.print = () => {};
       w.URL.createObjectURL = () => 'blob:x';

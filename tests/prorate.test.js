@@ -80,6 +80,7 @@ function boot(db, opts) {
   const dom = new JSDOM(html, {
     url: 'https://example.test/', runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc,
     beforeParse(w) {
+      w.HOSTEL_CONFIG = { cloud: false };
       w.scrollTo = () => {};
       w.print = () => {};
       w.URL.createObjectURL = () => 'blob:1';

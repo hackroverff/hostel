@@ -24,6 +24,7 @@ function open(seed) {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     beforeParse(win) {
+      win.HOSTEL_CONFIG = { cloud: false };
       win.scrollTo = () => {};
       win.print = () => { win.__printed = true; };
       win.__downloads = [];

@@ -15,6 +15,7 @@ function boot(seed) {
   const dom = new JSDOM(html, {
     url: 'https://example.test/', runScripts: 'dangerously', pretendToBeVisual: true,
     beforeParse(w) {
+      w.HOSTEL_CONFIG = { cloud: false };
       w.scrollTo = () => {};
       w.print = () => {};
       if (seed) w.localStorage.setItem('hostelManager.v1', JSON.stringify(seed));
