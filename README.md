@@ -71,51 +71,43 @@ The same breakdown follows the money: it appears on the **due sheet**, on the **
 **Changing these settings** recalculates the affected dues immediately. Dues that already have money recorded against them are **left untouched** — the app says how many, with a warning at the top of Hostel settings (tap *Got it* to dismiss).
 
 ### Rent and electricity
-### Account, privacy and cloud sync
+### Account, PIN, privacy and cloud sync
 
-- **Login** — a username (or email) and a password. The app cannot be opened without it.
-- **Local account (default)** — no Supabase keys: the password is stored only as a salted PBKDF2 hash on the phone, next to your data. Nothing leaves the phone, and *Forgot password?* offers to start a new local account (your data stays).
-- **Cloud account (optional)** — add your Supabase project URL and anon key (next section) and the same login opens the same hostel data on any phone. A change is pushed about a second after you make it; opening the app or coming back to it pulls newer data from the cloud. `localStorage` stays as an offline cache, so the app opens instantly and keeps working with no internet.
-- **Sync status** — Settings → *Account* shows **Synced**, **Syncing…**, **Offline – saved locally** or **Not synced – saved locally**, plus **Sync now** and **Log out**. With no keys it says **Cloud sync off**.
+- **Login first** — the app opens on a sign-in screen (email + password) and cannot be used without it. There is no sign-up screen: the owner creates the one account in the Supabase dashboard. Without Supabase keys the app falls back to a local account on the phone (username + password, salted PBKDF2 hash only), exactly as before.
+- **PIN lock** — after the first sign-in you choose a 4-digit PIN. It is asked every time the app opens (and after 2 minutes in the background, or on *Lock now*), so handing the phone to someone does not hand over the hostel. A wrong PIN shakes and says so; five wrong tries pause the pad for 30 seconds. The PIN can be changed in Settings, and cannot be recovered — restore a backup file if it is forgotten.
+- **Cloud account (optional)** — with Supabase keys in `config.js` the same login opens the same hostel data on any phone. `localStorage` stays the working copy, so the app opens instantly and keeps working with no internet; changes are uploaded about 2 seconds later.
+- **Two phones, one hostel** — every save is `update ... where version = <the version this phone last saw>`. If the cloud moved on, or this phone did, nothing is overwritten: a **Cloud copy is newer** / **This phone has newer changes** screen appears with **Use cloud copy** (default) and **Keep this phone's copy**, each showing version, resident/room counts and time.
+- **Sync status** — a chip in the header says **Saved to cloud**, **Saving…**, **Offline, will sync** or **Not synced yet**. Settings → *Account* repeats it with **Sync now** and **Log out**. Offline or failed uploads keep the data on the phone and retry when the internet returns or the app comes back to the foreground.
+- **Log out** asks for the PIN, warns that changes which never reached the cloud will be lost, then clears the copy on this phone (the cloud copy is untouched). On a local-only install the data stays, since the phone is the only copy.
+- **Backups are unchanged** — the weekly reminder, *Share backup*, *Back up data* and *Restore data* all still work; a restore asks first and then pushes the restored copy to the cloud. *Erase everything* and resident removals reach the cloud too.
 - **ID numbers** — the resident profile shows only the last 4 digits (`•••• 1234`) until you tap **Show**.
 - **Large text** — Settings → *Large text* makes every screen about 15% bigger for easier reading.
 
-## Supabase setup (optional, for cloud sync)
+## Supabase setup
 
-1. Create a free project at [supabase.com](https://supabase.com) and open **SQL Editor**.
-2. Run this once:
+Cloud sync is optional. Without it the app is a complete, offline, phone-only app.
 
-```sql
-create table if not exists public.hostel_data (
-  user_id uuid primary key references auth.users on delete cascade,
-  data jsonb not null,
-  updated_at timestamptz not null default now()
-);
-
-alter table public.hostel_data enable row level security;
-
-create policy "own row" on public.hostel_data
-  for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-```
-
-3. In **Project Settings → API** copy the **Project URL** and the **anon public** key.
-4. Put them at the top of the `<script>` in `index.html`:
+1. **Create the project** — [supabase.com](https://supabase.com) → *New project*. Wait for it to finish provisioning.
+2. **Create the tables** — *SQL Editor* → *New query* → paste **all of `supabase/schema.sql`** → *Run*. It creates `app_state` (one `jsonb` document per owner, with a `version`), `app_state_history` (a snapshot at most every 6 hours, kept 60 days) and the row level security policies that keep each hostel's rows private to its own login. Safe to run twice.
+3. **Create the owner's user** — *Authentication → Users → Add user*: the email and password the owner will sign in with. **There is no sign-up in the app on purpose.**
+4. **Turn sign-ups off** — *Authentication → Providers → Email*: switch **Enable sign ups** off (keep *Email* enabled). Nobody can create an account from the browser; only the user you just added can sign in.
+5. **Fill in `config.js`** — *Project Settings → API*: copy the **Project URL** and the **publishable** (`anon`) key into
 
 ```js
-var SUPABASE_URL = 'https://yourproject.supabase.co';
-var SUPABASE_ANON_KEY = 'eyJhbGciOi...';
-var SUPABASE_TABLE = 'hostel_data';
+window.APP_CONFIG = {
+  SUPABASE_URL: 'https://yourproject.supabase.co',
+  SUPABASE_KEY: 'sb_publishable_...'
+};
 ```
 
-   (They can also come from `window.HOSTEL_CONFIG = { supabaseUrl, supabaseAnonKey }`, from `<meta name="hostel-supabase-url">` / `<meta name="hostel-supabase-key">`, or from `localStorage.hostelManager.config`.)
+6. **Open the app**, sign in with that email and password, choose a PIN. The data already on the phone is uploaded as **version 1**; on another phone the same login pulls it down.
 
-5. In **Authentication → Providers → Email** keep email sign-in enabled. A plain username like `owner` is posted to Supabase as `owner@hostel.local` (change the domain with `usernameDomain` in `HOSTEL_CONFIG`); use a real email address as the username if you want password-reset emails. Turn **Confirm email** off if you want accounts to work immediately.
+Notes:
 
-Tests (and a phone-only install of a build that ships with keys) switch the cloud off with `window.HOSTEL_CONFIG = { cloud: false }` — every jsdom suite does this so nothing touches the network.
-
-The anon key is public by design — row level security above is what keeps each account's data private. Never put the **service_role** key in the app.
+- The publishable key is public by design — it ships in the browser. Row level security is the protection. Nothing else belongs in `config.js`.
+- Leave the `PASTE_` placeholders in place and the app runs local-only, with no network calls at all. The jsdom tests use that mode, plus a mocked Supabase client, so `npm test` never touches the internet.
+- `vendor/supabase.js` is the pinned browser build of `@supabase/supabase-js` (2.119.0, published 4 Nov 2026). It is served from the app's own origin and cached by the service worker; `*.supabase.co` requests are never cached.
+- Passwords are reset by the owner in *Authentication → Users* (the app only offers a reminder of that).
 
 ## Rules built in
 
@@ -141,23 +133,26 @@ Data is cached on this phone (and, with cloud sync, saved to your account), so:
 
 ```
 index.html            the whole app (HTML + CSS + JS, no build step)
+config.js             Supabase URL + publishable key (placeholders by default)
+vendor/supabase.js    pinned @supabase/supabase-js 2.119.0 browser build
+supabase/schema.sql   tables, history trigger and row level security
 manifest.webmanifest  PWA manifest
 sw.js                 service worker (offline cache + "updated" toast)
 icon-192.png          app icon
 icon-512.png          app icon
-tests/                jsdom tests (smoke, logic, details, electricity, rooms, auth, prorate)
+tests/                jsdom tests (smoke, logic, details, electricity, rooms, auth, prorate, cloud)
 ```
 
 ## Development
 
 ```bash
 npm install
-npm test        # runs the seven jsdom suites (smoke, logic, details, electricity, rooms, auth, prorate)
+npm test        # runs the eight jsdom suites (smoke, logic, details, electricity, rooms, auth, prorate, cloud)
 npm run serve   # static server on :8080
 ```
 
-The tests cover the home dashboard, rooms/beds and 1–8 sharing, the resident wizard, mid-month joining and leaving rent, payment receipts and WhatsApp receipts, reminders, reports, CSV/print, backup sharing and restore, erase-everything, masked IDs, large text, rent changes by month, month rollover, vacating, validation, and the account and sync layer (login gate, local account, sessions, Supabase sign-in/sign-up, pull, debounced push, token refresh, offline status) against a stubbed `fetch`. `tests/prorate.test.js` covers the mid-month engine on its own: joining on the 1st, fixed-30 vs actual days in 30- and 31-day months, the joining day counted and not counted, all three roundings, electricity pro-rated for both hostel types, leaving mid-month with both settings, hand-edited days and amounts, and the settings recalculation including its warning for dues that already have payments.
+The tests cover the home dashboard, rooms/beds and 1–8 sharing, the resident wizard, mid-month joining and leaving rent, payment receipts and WhatsApp receipts, reminders, reports, CSV/print, backup sharing and restore, erase-everything, masked IDs, large text, rent changes by month, month rollover, vacating, validation, and the account and sync layer (login gate, local account, sessions, Supabase sign-in/sign-up, pull, debounced push, token refresh, offline status) against a mocked Supabase client (`tests/mocksupabase.js`). `tests/cloud.test.js` covers the sync layer: placeholders make no network call at all, first login uploads version 1, pulling on open, the 2 second debounced `update ... where version = ...`, offline then reconnect, the choice screen with both buttons, logout clearing this phone, and the service worker never caching `*.supabase.co`. `tests/prorate.test.js` covers the mid-month engine on its own: joining on the 1st, fixed-30 vs actual days in 30- and 31-day months, the joining day counted and not counted, all three roundings, electricity pro-rated for both hostel types, leaving mid-month with both settings, hand-edited days and amounts, and the settings recalculation including its warning for dues that already have payments.
 
 They seed their own small fixture (`tests/fixture.js`) — no sample data ships in the app.
 
-No frameworks, no trackers, no analytics. The only network calls are the ones to your own Supabase project (and still none without keys).
+No frameworks, no trackers, no analytics. The only network calls are the ones to your own Supabase project (and still none without keys). No personal data is ever logged.

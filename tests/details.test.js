@@ -15,7 +15,8 @@ function boot(seed) {
   const dom = new JSDOM(html, {
     url: 'https://example.test/', runScripts: 'dangerously', pretendToBeVisual: true,
     beforeParse(w) {
-      w.HOSTEL_CONFIG = { cloud: false };
+      // placeholders in config.js == local-only mode: no network at all
+      w.APP_CONFIG = { SUPABASE_URL: 'PASTE_PROJECT_URL', SUPABASE_KEY: 'PASTE_PUBLISHABLE_KEY' };
       w.scrollTo = () => {};
       w.print = () => {};
       if (seed) w.localStorage.setItem('hostelManager.v1', JSON.stringify(seed));
@@ -34,7 +35,21 @@ function boot(seed) {
   const act = (a, extra) => { const el = q('[data-act="' + a + '"]' + (extra || '')); if (!el) throw new Error('missing act ' + a + extra); click(el); };
   const submit = (f) => f.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
   const db = () => JSON.parse(w.localStorage.getItem('hostelManager.v1'));
-  const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40));
+  const settle = async (ms) => {
+    await new Promise((r) => setTimeout(r, ms || 40));
+    // The 4-digit PIN now sits on top of the account: clear it automatically.
+    let guard = 0;
+    while (q('#lockLayer .lock-screen') && guard < 4) {
+      guard += 1;
+      const mode = q('#lockLayer .lock-screen').getAttribute('data-mode');
+      for (const ch of '1234') {
+        const key = q('[data-act="pin-digit"][data-digit="' + ch + '"]');
+        if (key) click(key);
+      }
+      await new Promise((r) => setTimeout(r, 450));
+      if (mode === 'locked' && !q('#lockLayer .lock-screen')) break;
+    }
+  };
   const unlock = async () => {
     await settle(180);
     if (!q('#authLayer.open')) return;

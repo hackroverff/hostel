@@ -1,6 +1,25 @@
-/* Hostel Manager — offline cache */
-const CACHE = 'hostel-manager-v6';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+/* Hostel Manager - offline cache */
+const CACHE = 'hostel-manager-v7';
+const SHELL = [
+  './',
+  './index.html',
+  './config.js',
+  './manifest.webmanifest',
+  './vendor/supabase.js',
+  './icon-192.png',
+  './icon-512.png'
+];
+
+/* The cloud API must never be cached: those responses are private data and a
+   stale row would be shown as if it were the cloud copy. */
+function isCloudRequest(url) {
+  try {
+    const host = new URL(url).hostname;
+    return /(^|\.)supabase\.(co|in)$/i.test(host);
+  } catch (e) {
+    return false;
+  }
+}
 
 self.addEventListener('install', (event) => {
   // Do not take over mid-session; the page asks for SKIP_WAITING when it is safe.
@@ -26,6 +45,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
+  // Auth, REST and storage calls go straight to the network, untouched by us.
+  if (isCloudRequest(req.url)) return;
 
   // Pages: try the network so updates arrive, fall back to the cached app.
   if (req.mode === 'navigate') {
