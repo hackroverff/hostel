@@ -883,14 +883,6 @@ function uid(prefix) {
   return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-/* mask an ID number, showing only the last 4 characters */
-function maskId(id) {
-  var v = String(id == null ? '' : id).trim();
-  if (!v) return '\u2014';
-  if (v.length <= 4) return '\u2022\u2022\u2022\u2022';
-  return '\u2022\u2022\u2022\u2022 ' + v.slice(-4);
-}
-
 /* apply the saved reading preferences */
 function applyUiPrefs() {
   try {
@@ -1164,6 +1156,9 @@ function upgrade(d) {
     });
   });
   d.expenses.forEach(function (e) { e.amount = num(e.amount); });
+  // ID numbers never belong to the hostel document (it is uploaded, snapshotted
+  // and exported): move any number from an older version into the ID store.
+  stashLegacyIds(d);
   ensureBedsForRooms(d);
   return d;
 }
@@ -1777,6 +1772,7 @@ function deleteResidentDeep(resident) {
   freeBedOf(resident);
   db.residents = db.residents.filter(function (r) { return r.id !== resident.id; });
   db.payments = db.payments.filter(function (p) { return p.residentId !== resident.id; });
+  removeIdFor(resident.id);
   save();
   syncElectricity();
 }
@@ -2352,10 +2348,11 @@ function renderResidentProfile(id) {
       '<a class="btn ghost sm" href="' + attr(waLink(r.guardianPhone, 'Hello, this is about ' + r.name + '\u2019s stay at ' + propName(r.propertyId) + '.')) + '" target="_blank" rel="noopener">' + icon('whatsapp', 17) + ' Message</a></div>' : '') +
     '<div class="kv"><div class="k">College / work</div><div class="v">' + esc(r.college || '\u2014') + '</div></div>' +
     '<div class="kv"><div class="k">ID proof</div><div class="v">' + esc(r.idType || '\u2014') +
-      (r.idNumber
-        ? '<div class="row-between" style="gap:8px;align-items:center"><span class="small ' + (ui.revealedIds[r.id] ? '' : 'muted') + '" style="letter-spacing:' + (ui.revealedIds[r.id] ? '0' : '.08em') + '">' + esc(ui.revealedIds[r.id] ? r.idNumber : maskId(r.idNumber)) + '</span>' +
-          '<button class="reveal-btn" data-act="toggle-id" data-id="' + attr(r.id) + '" aria-label="' + (ui.revealedIds[r.id] ? 'Hide ID number' : 'Show ID number') + '">' + icon('eye', 15) + (ui.revealedIds[r.id] ? ' Hide' : ' Show') + '</button></div>'
-        : '') + '</div></div>' +
+      (hasIdNumber(r.id)
+        ? '<div class="row-between" style="gap:8px;align-items:center"><span class="small ' + (isIdRevealed(r.id) ? '' : 'muted') + '" style="letter-spacing:' + (isIdRevealed(r.id) ? '.02em' : '.08em') + '" id="idNumberValue">' + esc(isIdRevealed(r.id) ? idNumberFor(r.id) : maskIdNumber(idNumberFor(r.id))) + '</span>' +
+          '<button class="reveal-btn" data-act="' + (isIdRevealed(r.id) ? 'hide-id' : 'reveal-id') + '" data-id="' + attr(r.id) + '" aria-label="' + (isIdRevealed(r.id) ? 'Hide ID number' : 'Show ID number') + '">' + icon('eye', 15) + (isIdRevealed(r.id) ? ' Hide' : ' Show') + '</button></div>' +
+          (isIdRevealed(r.id) ? '<div class="tiny muted" style="margin-top:2px">Hides again in 30 seconds. Enter your PIN to show it.</div>' : '<div class="tiny muted" style="margin-top:2px">Enter your PIN to show the full number.</div>')
+        : '<div class="tiny muted" style="margin-top:2px">No ID number saved</div>') + '</div></div>' +
     '<div class="kv"><div class="k">Joining date</div><div class="v">' + esc(fmtDate(r.joiningDate)) + '</div></div>' +
     '<div class="kv"><div class="k">Monthly rent</div><div class="v t-num">' + money(r.rent) + '</div></div>' +
     (r.notes ? '<div class="kv"><div class="k">Notes</div><div class="v" style="font-weight:500;white-space:pre-wrap">' + esc(r.notes) + '</div></div>' : '') +
@@ -3249,7 +3246,7 @@ function applyRentFrom(resId, fromMonth, newRent) {
 }
 function newDraft() {
   return {
-    name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '',
+    name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '', idConsent: false,
     photo: '', propertyId: (ui.prop !== 'all' ? ui.prop : db.properties[0].id), roomId: '', bedId: '',
     joiningDate: todayISO(), rent: propertyRent(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
     depositAmount: propertyAdvance(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
@@ -3265,7 +3262,7 @@ function openResidentWizard(id, bedId) {
       mode: 'edit', id: id, step: 0, status: r.status,
       data: {
         name: r.name, phone: r.phone || '', guardianName: r.guardianName || '', guardianPhone: r.guardianPhone || '',
-        college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: r.idNumber || '', photo: r.photo || '',
+        college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: idNumberFor(r.id), idConsent: true, photo: r.photo || '',
         propertyId: r.propertyId, roomId: r.roomId || '', bedId: r.bedId || '', joiningDate: r.joiningDate || todayISO(),
         rent: num(r.rent), depositAmount: num(r.depositAmount),
         depositReceived: !!r.depositReceived, notes: r.notes || '', rentFrom: thisMonth(),
@@ -3368,10 +3365,7 @@ function wizBody(data, step) {
       '<div class="field"><label>Guardian phone</label><input class="input" name="guardianPhone" inputmode="numeric" maxlength="10" placeholder="10 digits" value="' + attr(data.guardianPhone) + '"><div class="field-error"></div></div>' +
       '</div>' +
       '<div class="field"><label>College or workplace</label><input class="input" name="college" placeholder="e.g. Anna University" value="' + attr(data.college) + '"></div>' +
-      '<div class="form-grid">' +
-      '<div class="field"><label>ID proof</label><select class="select" name="idType">' + ID_TYPES.map(function (t) { return '<option' + (data.idType === t ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="field"><label>ID number</label><input class="input" name="idNumber" placeholder="Number" value="' + attr(data.idNumber) + '"></div>' +
-      '</div>';
+      idFieldsHTML(data, ui.wizard.mode !== 'edit');
   }
   if (step === 1) {
     var propRooms = db.rooms.filter(function (r) { return r.propertyId === data.propertyId; });
@@ -3462,6 +3456,8 @@ function captureWizard() {
   });
   var received = form.elements['depositReceived'];
   if (received) d.depositReceived = !!received.checked;
+  var consent = form.elements['idConsent'];
+  if (consent) d.idConsent = !!consent.checked;
 }
 
 function validatePhoneField(field, value, required, label) {
@@ -3503,6 +3499,13 @@ function wizardNext() {
     if (!val(form, 'name') || val(form, 'name').length < 2) ok = setError(fieldOf(form.elements['name']), 'Please enter the full name');
     ok = validatePhoneField(fieldOf(form.elements['phone']), val(form, 'phone'), true, 'Phone number') && ok;
     ok = validatePhoneField(fieldOf(form.elements['guardianPhone']), val(form, 'guardianPhone'), false, 'Guardian phone') && ok;
+    var idCheck = validateIdNumber(w.data.idType, w.data.idNumber);
+    if (!idCheck.ok) ok = setError(fieldOf(form.elements['idNumber']), idCheck.error);
+    if (ok && w.mode !== 'edit' && !w.data.idConsent) {
+      var consentErr = $('#idConsentError');
+      if (consentErr) consentErr.textContent = 'Please tick this before adding the resident';
+      ok = false;
+    }
   } else if (w.step === 1) {
     var optionalRoom = w.status === 'Vacated';
     if (!optionalRoom && !val(form, 'roomId')) ok = setError(fieldOf(form.elements['roomId']), 'Choose a room');
@@ -3557,10 +3560,19 @@ function saveResidentForm(form) {
     rent: (firstMode === 'prorated' && firstPlan.edited) ? firstPlan.rent : null,
     edited: firstMode === 'prorated' ? !!firstPlan.edited : false
   };
+  // The ID number is validated here and kept in its own store; the document
+  // only ever carries the ID *type*.
+  var idCheck = validateIdNumber(w.data.idType, w.data.idNumber);
+  if (!idCheck.ok) {
+    toast(idCheck.error, 'bad');
+    closeSheet();
+    openResidentWizard(w.mode === 'edit' ? w.id : null);
+    return;
+  }
   var fields = {
     name: w.data.name.trim(), phone: cleanPhone(w.data.phone), guardianName: w.data.guardianName.trim(),
     guardianPhone: cleanPhone(w.data.guardianPhone), college: w.data.college.trim(),
-    idType: w.data.idType, idNumber: w.data.idNumber.trim(), photo: w.data.photo || '',
+    idType: w.data.idType, photo: w.data.photo || '',
     propertyId: w.data.propertyId, roomId: roomId, bedId: bedId,
     joiningDate: joining, rent: rent, firstMonth: firstMonth,
     depositAmount: deposit, depositReceived: !!w.data.depositReceived,
@@ -3573,6 +3585,7 @@ function saveResidentForm(form) {
     var oldBed = resident.bedId;
     var oldRent = resident.rent;
     Object.keys(fields).forEach(function (k) { resident[k] = fields[k]; });
+    delete resident.idNumber;
     if (rent !== num(oldRent)) {
       applyRentFrom(resident.id, w.data.rentFrom || thisMonth(), rent);
       var newDues = db.payments.filter(function (x) {
@@ -3594,6 +3607,7 @@ function saveResidentForm(form) {
   reconcileBeds();
   ensureDues();
   save();
+  setIdFor(resident.id, fields.idType, idCheck.value);
   closeSheet();
   render();
   toast(w.mode === 'edit' ? 'Resident updated' : 'Resident added', 'good');
@@ -4222,9 +4236,17 @@ function sheetInstall() {
    24. BACKUP / RESTORE
    =========================================================================== */
 function backupPayload() {
+  // The document itself never holds a number; they travel beside it so a
+  // restore can put them back into resident_ids.
+  var idRows = Object.keys(idStore.rows).map(function (rid) {
+    return { residentId: rid, idType: idStore.rows[rid].idType, idNumber: idStore.rows[rid].idNumber };
+  });
   return {
     name: 'hostel-backup-' + todayISO() + '.json',
-    payload: { app: 'Hostel Manager', version: 1, exportedAt: new Date().toISOString(), data: db }
+    payload: {
+      app: 'Hostel Manager', version: 2, exportedAt: new Date().toISOString(),
+      data: db, idNumbers: idRows
+    }
   };
 }
 function markBackedUp() {
@@ -4232,14 +4254,14 @@ function markBackedUp() {
   save();
   render();
 }
-function backupData() {
+function downloadBackupNow() {
   var b = backupPayload();
   if (downloadFile(b.name, JSON.stringify(b.payload, null, 2), 'application/json')) {
     markBackedUp();
     toast('Backup saved \u00B7 keep it safe', 'good');
   }
 }
-function shareBackup() {
+function shareBackupNow() {
   var b = backupPayload();
   var json = JSON.stringify(b.payload, null, 2);
   var file = null;
@@ -4256,13 +4278,32 @@ function shareBackup() {
         })
         .catch(function (err) {
           if (err && err.name === 'AbortError') return;
-          backupData();
+          downloadBackupNow();
         });
       return;
     }
   }
-  backupData();
+  downloadBackupNow();
 }
+/* Every backup file can contain ID numbers, so say so before it leaves. */
+function requestBackup(kind) {
+  var count = Object.keys(idStore.rows).length;
+  askConfirm({
+    title: count ? 'This file contains ID numbers' : 'Save a backup?',
+    icon: 'alert',
+    message: count
+      ? 'Share only with yourself. It includes the ID numbers of <b>' + plural(count, 'resident') + '</b>.<br><br>Anyone who opens the file can read them.'
+      : 'It holds names, phone numbers and rent records. Share only with yourself.',
+    confirmLabel: kind === 'share' ? 'Share backup' : 'Save backup',
+    onYes: function () {
+      closeConfirm();
+      if (kind === 'share') shareBackupNow();
+      else downloadBackupNow();
+    }
+  });
+}
+function backupData() { requestBackup('download'); }
+function shareBackup() { requestBackup('share'); }
 function toggleLargeText() {
   db.settings.largeText = !db.settings.largeText;
   save();
@@ -4292,6 +4333,7 @@ function handleRestoreFile(file) {
               ensureBedsForRooms(db);
               reconcileBeds();
               ensureDues();
+              restoreIdNumbers(parsed && parsed.idNumbers);
               // The file carries the version of the phone it came from: keep
               // this phone's place in the cloud, then push the restored copy.
               if (db.meta) { db.meta.cloudVersion = cloud.version || 0; db.meta.cloudAt = cloud.at || null; }
@@ -4336,6 +4378,7 @@ function handleRestoreFile(file) {
 
 function clearAllData() {
   try {
+    dropAllIds();
     db = blankDB();
     save();
     ui.prop = 'all'; ui.payMonth = thisMonth(); ui.payFilter = 'all';
@@ -4360,6 +4403,337 @@ function requestEraseAll() {
     icon: 'trash',
     onYes: clearAllData
   });
+}
+
+/* ===========================================================================
+   24b. RESIDENT ID NUMBERS  (kept apart from the hostel document)
+   ---------------------------------------------------------------------------
+   Aadhaar and the other ID numbers never go inside `db`: the hostel document is
+   uploaded, snapshotted into app_state_history and exported, so the numbers
+   live in their own local store (localStorage 'hostelManager.ids') and their
+   own cloud table (resident_ids, one row per resident).
+
+   The main document keeps only the ID *type* (a label such as "Aadhaar") and
+   the resident id the number belongs to.
+
+   Local shape:
+     { v: 1,
+       rows:    { [residentId]: { idType, idNumber, updatedAt } },
+       dirty:   { [residentId]: true },      // needs an upload
+       deleted: { [residentId]: timestamp } } // needs a cloud delete
+   =========================================================================== */
+var IDS_KEY = 'hostelManager.ids';
+var ID_TABLE = 'resident_ids';
+var ID_REVEAL_MS = (typeof window !== 'undefined' && Number(window.__idRevealMs)) || 30 * 1000;
+
+function blankIdStore() { return { v: 1, rows: {}, dirty: {}, deleted: {} }; }
+function readIdStore() {
+  try {
+    var raw = safeGet('localStorage', IDS_KEY);
+    if (!raw) return blankIdStore();
+    var s = JSON.parse(raw);
+    if (!s || typeof s !== 'object') return blankIdStore();
+    return { v: 1, rows: s.rows || {}, dirty: s.dirty || {}, deleted: s.deleted || {} };
+  } catch (e) {
+    return blankIdStore();
+  }
+}
+function writeIdStore() { return safeSet('localStorage', IDS_KEY, JSON.stringify(idStore)); }
+var idStore = readIdStore();
+
+function idNumberFor(residentId) {
+  var rec = idStore.rows[residentId];
+  return rec && rec.idNumber ? String(rec.idNumber) : '';
+}
+function hasIdNumber(residentId) { return !!idNumberFor(residentId); }
+
+/* Stores (or clears) the number for one resident and queues the sync. */
+function setIdFor(residentId, idType, idNumber) {
+  if (!residentId) return;
+  var number = String(idNumber == null ? '' : idNumber).trim();
+  if (!number) { removeIdFor(residentId); return; }
+  idStore.rows[residentId] = {
+    idType: String(idType || 'Other'),
+    idNumber: number,
+    updatedAt: new Date().toISOString()
+  };
+  delete idStore.deleted[residentId];
+  idStore.dirty[residentId] = true;
+  writeIdStore();
+  scheduleIdSync();
+}
+function removeIdFor(residentId) {
+  if (!residentId) return;
+  var had = !!idStore.rows[residentId];
+  delete idStore.rows[residentId];
+  delete idStore.dirty[residentId];
+  delete ui.revealedIds[residentId];
+  idStore.deleted[residentId] = new Date().toISOString();
+  writeIdStore();
+  if (had) scheduleIdSync();
+}
+function dropIdsFor(residentIds) {
+  (residentIds || []).forEach(function (id) { if (id) removeIdFor(id); });
+}
+function dropAllIds() {
+  Object.keys(idStore.rows).forEach(function (id) { removeIdFor(id); });
+  Object.keys(idStore.dirty).forEach(function (id) { delete idStore.dirty[id]; });
+  writeIdStore();
+}
+/* Any number whose resident is gone is removed from the phone and the cloud. */
+function pruneOrphanIds() {
+  var live = {};
+  (db.residents || []).forEach(function (r) { live[r.id] = true; });
+  var gone = Object.keys(idStore.rows).filter(function (id) { return !live[id]; });
+  if (!gone.length) return;
+  gone.forEach(function (id) { removeIdFor(id); });
+  writeIdStore();
+}
+
+/* Old documents carried the number inside the resident: move it out once. */
+function stashLegacyIds(doc) {
+  if (!doc || !Array.isArray(doc.residents)) return;
+  var moved = false;
+  doc.residents.forEach(function (r) {
+    if (!r || !r.id) return;
+    var legacy = typeof r.idNumber === 'string' ? r.idNumber.trim() : '';
+    if (legacy && !idStore.rows[r.id] && !idStore.deleted[r.id]) {
+      // Moved exactly as it was: validating an existing document must never
+      // throw a number away. Validation happens when a number is typed in.
+      idStore.rows[r.id] = {
+        idType: r.idType || 'Other',
+        idNumber: legacy.replace(/\s+/g, ''),
+        updatedAt: new Date().toISOString()
+      };
+      idStore.dirty[r.id] = true;
+      moved = true;
+    }
+    delete r.idNumber;
+  });
+  if (moved) writeIdStore();
+}
+
+/* --- masking -------------------------------------------------------------- */
+/* "XXXX XXXX 1234": the last 4 characters stay, everything else is hidden. */
+function maskIdNumber(value) {
+  var v = String(value == null ? '' : value).replace(/[^0-9A-Za-z]/g, '');
+  if (!v) return '';
+  if (v.length <= 4) return 'XXXX';
+  var tail = v.slice(-4);
+  var head = new Array(v.length - 4 + 1).join('X').replace(/(.{4})(?=.)/g, '$1 ');
+  return head + ' ' + tail;
+}
+
+/* --- Aadhaar (Verhoeff) validation ---------------------------------------- */
+var VERHOEFF_D = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
+  [2, 3, 4, 0, 1, 7, 8, 9, 5, 6], [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
+  [4, 0, 1, 2, 3, 9, 5, 6, 7, 8], [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+  [6, 5, 9, 8, 7, 1, 0, 4, 3, 2], [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
+  [8, 7, 6, 5, 9, 3, 2, 1, 0, 4], [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+];
+var VERHOEFF_P = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
+  [5, 8, 0, 3, 7, 9, 6, 1, 4, 2], [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
+  [9, 4, 5, 3, 1, 2, 6, 8, 7, 0], [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+  [2, 7, 9, 3, 8, 0, 6, 4, 1, 5], [7, 0, 4, 6, 9, 1, 3, 2, 5, 8]
+];
+function verhoeffValid(number) {
+  var digits = String(number == null ? '' : number).replace(/\D/g, '').split('').reverse();
+  if (!digits.length) return false;
+  var c = 0;
+  for (var i = 0; i < digits.length; i++) {
+    c = VERHOEFF_D[c][VERHOEFF_P[i % 8][Number(digits[i])]];
+  }
+  return c === 0;
+}
+
+/* Returns { ok, value } where value is what gets stored (Aadhaar: no spaces). */
+function validateIdNumber(type, value) {
+  var raw = String(value == null ? '' : value).trim();
+  if (!raw) return { ok: true, value: '' };
+  var clean = raw.replace(/\s+/g, '');
+  if (type === 'Aadhaar') {
+    if (!/^\d{12}$/.test(clean)) return { ok: false, value: clean, error: 'Aadhaar needs exactly 12 digits' };
+    if (!verhoeffValid(clean)) return { ok: false, value: clean, error: 'That Aadhaar number is not valid. Check the digits.' };
+    return { ok: true, value: clean };
+  }
+  if (!/^[A-Za-z0-9]{4,20}$/.test(clean)) {
+    return { ok: false, value: clean, error: 'Use 4 to 20 letters or digits' };
+  }
+  return { ok: true, value: clean };
+}
+
+/* --- showing the number --------------------------------------------------- */
+function isIdRevealed(residentId) {
+  var until = ui.revealedIds[residentId];
+  return !!(until && until > Date.now());
+}
+function hideIdNumber(residentId) {
+  delete ui.revealedIds[residentId];
+  render();
+}
+/* The PIN is asked every time, and the number hides itself after 30 seconds. */
+function revealIdNumber(residentId) {
+  if (!residentId) return;
+  requestPinVerify(function () {
+    var until = Date.now() + ID_REVEAL_MS;
+    ui.revealedIds[residentId] = until;
+    render();
+    setTimeout(function () {
+      // a later reveal has its own timer; never cut that one short
+      if (ui.revealedIds[residentId] !== until) return;
+      delete ui.revealedIds[residentId];
+      render();
+    }, ID_REVEAL_MS + 60);
+  });
+}
+function hideAllRevealedIds() { ui.revealedIds = {}; }
+
+/* --- syncing the numbers -------------------------------------------------- */
+function idsPending() {
+  return Object.keys(idStore.dirty).length > 0 || Object.keys(idStore.deleted).length > 0;
+}
+function scheduleIdSync() {
+  if (!cloud.config.configured) return;
+  if (!session || !session.cloud) return;
+  if (conflictState.visible) return;
+  if (!isOnline()) { setSyncStatus('offline'); return; }
+  cloud.idPending = true;
+  setSyncStatus('saving');
+  if (cloud.idTimer) clearTimeout(cloud.idTimer);
+  cloud.idTimer = setTimeout(function () { cloud.idTimer = null; idSyncNow(); }, SYNC_DEBOUNCE_MS);
+}
+
+/* Pushes queued numbers and deletions. Last write wins per resident. */
+async function idSyncNow() {
+  if (!cloudReady()) return false;
+  if (cloud.idBusy) return false;
+  if (!isOnline()) { setSyncStatus('offline'); return false; }
+  var rows = Object.keys(idStore.dirty).filter(function (id) { return !!idStore.rows[id]; });
+  var gone = Object.keys(idStore.deleted);
+  if (!rows.length && !gone.length) { cloud.idPending = false; return true; }
+  var client = cloudClient();
+  if (!client) return false;
+  cloud.idBusy = true;
+  setSyncStatus('saving');
+  try {
+    for (var i = 0; i < rows.length; i++) {
+      var rid = rows[i];
+      var rec = idStore.rows[rid];
+      var res = await client.from(ID_TABLE).upsert({
+        user_id: session.user.id,
+        resident_id: rid,
+        id_type: rec.idType || 'Other',
+        id_number: rec.idNumber,
+        updated_at: rec.updatedAt || new Date().toISOString()
+      }, { onConflict: 'user_id,resident_id' });
+      if (res && res.error) throw res.error;
+      delete idStore.dirty[rid];
+    }
+    for (var j = 0; j < gone.length; j++) {
+      var drid = gone[j];
+      var del = await client.from(ID_TABLE).delete()
+        .eq('user_id', session.user.id).eq('resident_id', drid);
+      if (del && del.error) throw del.error;
+      delete idStore.deleted[drid];
+    }
+    writeIdStore();
+    cloud.idBusy = false;
+    cloud.idPending = false;
+    setSyncStatus('synced');
+    return true;
+  } catch (e) {
+    cloud.idBusy = false;
+    writeIdStore();
+    syncFailed(e);
+    return false;
+  }
+}
+
+/* Reads the cloud rows into this phone. Returns true when something changed. */
+async function pullIds() {
+  if (!cloudReady()) return false;
+  var client = cloudClient();
+  if (!client) return false;
+  var res;
+  try {
+    res = await client.from(ID_TABLE).select('resident_id,id_type,id_number,updated_at')
+      .eq('user_id', session.user.id);
+  } catch (e) {
+    return false;
+  }
+  if (res && res.error) return false;
+  var rows = res && Array.isArray(res.data) ? res.data : [];
+  var live = {};
+  (db.residents || []).forEach(function (r) { live[r.id] = true; });
+  var changed = false;
+  rows.forEach(function (row) {
+    if (!row || !row.resident_id || !live[row.resident_id]) return;
+    if (!row.id_number) return;
+    var local = idStore.rows[row.resident_id];
+    if (local && idStore.dirty[row.resident_id]) return;         // this phone wins
+    var localAt = local && local.updatedAt ? Date.parse(local.updatedAt) : 0;
+    var remoteAt = row.updated_at ? Date.parse(row.updated_at) : 0;
+    if (local && localAt > remoteAt) return;                     // this phone wins
+    idStore.rows[row.resident_id] = {
+      idType: row.id_type || 'Other',
+      idNumber: String(row.id_number),
+      updatedAt: row.updated_at || new Date().toISOString()
+    };
+    delete idStore.dirty[row.resident_id];
+    delete idStore.deleted[row.resident_id];
+    changed = true;
+  });
+  if (changed) writeIdStore();
+  return changed;
+}
+/* Puts the numbers from a backup file back. The current set is replaced. */
+function restoreIdNumbers(list) {
+  dropAllIds();
+  var live = {};
+  (db.residents || []).forEach(function (r) { live[r.id] = true; });
+  var restored = 0;
+  (Array.isArray(list) ? list : []).forEach(function (item) {
+    if (!item || !item.residentId || !live[item.residentId]) return;
+    var number = String(item.idNumber == null ? '' : item.idNumber).replace(/\s+/g, '').trim();
+    if (!number) return;
+    idStore.rows[item.residentId] = {
+      idType: item.idType || 'Other',
+      idNumber: number,
+      updatedAt: new Date().toISOString()
+    };
+    idStore.dirty[item.residentId] = true;
+    delete idStore.deleted[item.residentId];
+    restored += 1;
+  });
+  writeIdStore();
+  return restored;
+}
+
+function afterIdsPulled(changed) { if (changed) render(); }
+
+/* --- the ID fields in the resident wizard --------------------------------- */
+function idHintFor(type) {
+  if (type === 'Aadhaar') return '12 digits. Spaces are fine, they are removed.';
+  return '4 to 20 letters or digits.';
+}
+function idFieldsHTML(data, isAdd) {
+  var type = data.idType || 'Aadhaar';
+  return '<div class="form-grid">' +
+    '<div class="field"><label>ID proof</label><select class="select" name="idType" data-act-change="wiz-id-type">' +
+    ID_TYPES.map(function (t) { return '<option' + (type === t ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="field"><label>ID number</label>' +
+    '<input class="input" name="idNumber" autocomplete="off" placeholder="' + (type === 'Aadhaar' ? '12 digit number' : 'Number') + '" value="' + attr(data.idNumber) + '"' +
+    (type === 'Aadhaar' ? ' inputmode="numeric"' : '') + '><div class="field-error"></div></div>' +
+    '</div>' +
+    '<div class="field-hint" id="idHint">' + esc(idHintFor(type)) + ' Kept apart from your hostel data and shown masked.</div>' +
+    (isAdd
+      ? '<label class="auth-check" style="color:var(--ink)"><input type="checkbox" name="idConsent"' + (data.idConsent ? ' checked' : '') + '>' +
+        '<span style="color:var(--ink)">Resident agreed to keep their ID number in this app.</span></label>' +
+        '<div class="field-error" id="idConsentError"></div>'
+      : '');
 }
 
 /* ===========================================================================
@@ -4751,6 +5125,7 @@ async function syncNow(opts) {
     cloud.busy = false;
     if (out === 'conflict') { await openConflictForLatest(); return false; }
     cloud.pending = false;
+    await idSyncNow();
     setSyncStatus('synced');
     return true;
   } catch (e) {
@@ -4762,6 +5137,17 @@ async function syncNow(opts) {
 
 /* Opens the app copy on this phone and compares it with the cloud copy. */
 async function cloudPullOnOpen() {
+  var okDoc = await cloudPullDocument();
+  if (okDoc) {
+    // Anything this phone has queued (including numbers moved out of an older
+    // document) goes up first, then whatever the cloud knows comes down.
+    if (idsPending()) await idSyncNow();
+    var changed = await pullIds();
+    afterIdsPulled(changed);
+  }
+  return okDoc;
+}
+async function cloudPullDocument() {
   if (!cloudReady()) return false;
   if (conflictState.visible || cloud.busy) return false;
   if (cloud.pending) return syncNow();
@@ -5051,6 +5437,7 @@ function renderLock() {
   refreshBodyLock();
 }
 function showLock(mode) {
+  hideAllRevealedIds();
   pinState.mode = mode;
   pinState.entry = '';
   pinState.first = '';
@@ -5466,6 +5853,8 @@ async function doLogout() {
   forgetSession();
   clearPinRecord();
   clearCacheOwner();
+  idStore = blankIdStore();
+  writeIdStore();
   if (wasCloud) resetLocalData();
   authState.visible = false;
   authState.mode = 'login';
@@ -5510,6 +5899,7 @@ function refreshAuthOnShow() {
   if (lockHiddenAt && (Date.now() - lockHiddenAt) > PIN_TTL_MS) { lockApp(); return; }
   if (!cloudReady()) return;
   if (cloud.pending) syncNow();
+  else if (idsPending()) idSyncNow();
   else cloudPullOnOpen();
 }
 
@@ -6022,11 +6412,11 @@ document.addEventListener('click', function (e) {
       case 'toggle-large-text':
         toggleLargeText();
         break;
-      case 'toggle-id':
-        if (id) {
-          ui.revealedIds[id] = !ui.revealedIds[id];
-          render();
-        }
+      case 'reveal-id':
+        if (id) revealIdNumber(id);
+        break;
+      case 'hide-id':
+        if (id) hideIdNumber(id);
         break;
       case 'receipt-done':
         closeSheet();
@@ -6127,6 +6517,10 @@ document.addEventListener('change', function (e) {
     ui.wizard.data.bedId = '';
     var room = roomById(el.value);
     if (room && (!ui.wizard.data.rent || num(ui.wizard.data.rent) === 0)) ui.wizard.data.rent = room.rent;
+    renderSheet();
+  } else if (change === 'wiz-id-type') {
+    captureWizard();
+    ui.wizard.data.idType = el.value;
     renderSheet();
   } else if (change === 'wiz-rent') {
     captureWizard();
@@ -6329,6 +6723,7 @@ function setupSessionWatch() {
   window.addEventListener('online', function () {
     if (!cloudReady()) return;
     if (cloud.pending) syncNow();
+    else if (idsPending()) idSyncNow();
     else cloudPullOnOpen();
   });
   window.addEventListener('offline', function () {
@@ -6346,6 +6741,7 @@ function init() {
   ensureBedsForRooms(db);
   reconcileBeds();
   ensureDues();
+  pruneOrphanIds();
   try { save(); } catch (e) {}
   ui.tab = 'home';
   ui.view = { name: 'home', params: {} };

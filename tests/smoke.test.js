@@ -394,6 +394,11 @@ async function unlock(opts) {
 
   clickAct('backup');
   await settle();
+  ok(!!q('#confirmLayer .sheet'), 'a backup warns first: it can contain ID numbers');
+  ok(/This file contains ID numbers/.test(text(q('#confirmLayer'))), 'the warning names the ID numbers');
+  ok(/Share only with yourself/.test(text(q('#confirmLayer'))), 'the warning says who may have it');
+  clickAct('confirm-yes');
+  await settle(120);
   ok(w.__downloads.length === 2, 'backup download triggered');
   const bd = w.__downloads[1];
   ok(/^hostel-backup-\d{4}-\d{2}-\d{2}\.json$/.test(bd.download), 'backup filename: ' + bd.download);

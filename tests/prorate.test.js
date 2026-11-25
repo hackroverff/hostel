@@ -297,6 +297,7 @@ function dueOf(h, name, mk) {
     let f = h.q('#sheetLayer form[data-form="resident"]');
     f.elements['name'].value = 'Hand Edited';
     f.elements['phone'].value = '9876500031';
+    f.elements['idConsent'].checked = true;
     h.act('wiz-next');
     await h.settle(120);
     f = h.q('#sheetLayer form[data-form="resident"]');
@@ -380,6 +381,7 @@ function dueOf(h, name, mk) {
     let f = h.q('#sheetLayer form[data-form="resident"]');
     f.elements['name'].value = 'Wizard Person';
     f.elements['phone'].value = '9876500044';
+    f.elements['idConsent'].checked = true;
     h.act('wiz-next');
     await h.settle(120);
     f = h.q('#sheetLayer form[data-form="resident"]');

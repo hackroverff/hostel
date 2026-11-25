@@ -80,7 +80,7 @@ The same breakdown follows the money: it appears on the **due sheet**, on the **
 - **Sync status** — a chip in the header says **Saved to cloud**, **Saving…**, **Offline, will sync** or **Not synced yet**. Settings → *Account* repeats it with **Sync now** and **Log out**. Offline or failed uploads keep the data on the phone and retry when the internet returns or the app comes back to the foreground.
 - **Log out** asks for the PIN, warns that changes which never reached the cloud will be lost, then clears the copy on this phone (the cloud copy is untouched). On a local-only install the data stays, since the phone is the only copy.
 - **Backups are unchanged** — the weekly reminder, *Share backup*, *Back up data* and *Restore data* all still work; a restore asks first and then pushes the restored copy to the cloud. *Erase everything* and resident removals reach the cloud too.
-- **ID numbers** — the resident profile shows only the last 4 digits (`•••• 1234`) until you tap **Show**.
+- **ID numbers are kept apart** — Aadhaar and other ID numbers are never part of the hostel document that is uploaded, snapshotted or exported. They live in their own local store and their own cloud table (`resident_ids`, one row per resident), masked as `XXXX XXXX 1234` everywhere. **Show** asks for the PIN and the number hides itself again after 30 seconds (and whenever the app locks). Aadhaar must be 12 digits and pass the Verhoeff checksum; other ID types take 4–20 letters or digits. Deleting a resident (or erasing everything) deletes their ID row too.
 - **Large text** — Settings → *Large text* makes every screen about 15% bigger for easier reading.
 
 ## Supabase setup
@@ -105,6 +105,7 @@ window.APP_CONFIG = {
 Notes:
 
 - The publishable key is public by design — it ships in the browser. Row level security is the protection. Nothing else belongs in `config.js`.
+- `supabase/migrations/002_resident_ids.sql` (also appended to `supabase/schema.sql`) adds the `resident_ids` table for ID numbers. Run it once with the rest; it is safe to run twice.
 - Leave the `PASTE_` placeholders in place and the app runs local-only, with no network calls at all. The jsdom tests use that mode, plus a mocked Supabase client, so `npm test` never touches the internet.
 - `vendor/supabase.js` is the pinned browser build of `@supabase/supabase-js` (2.119.0, published 4 Nov 2026). It is served from the app's own origin and cached by the service worker; `*.supabase.co` requests are never cached.
 - Passwords are reset by the owner in *Authentication → Users* (the app only offers a reminder of that).
@@ -124,7 +125,7 @@ Notes:
 
 Data is cached on this phone (and, with cloud sync, saved to your account), so:
 
-- **Back up weekly** from Settings → *Share backup* (sends the JSON file to Google Drive, WhatsApp or Files — whichever your phone offers) or *Back up data* (downloads it). Restore it on a new phone with *Restore data*.
+- **Back up weekly** — a backup now warns that the file can contain ID numbers, then includes them so a restore can put them back. From Settings → *Share backup* (sends the JSON file to Google Drive, WhatsApp or Files — whichever your phone offers) or *Back up data* (downloads it). Restore it on a new phone with *Restore data*.
 - *Erase everything* in Settings asks for a red confirmation, then deletes every resident, room, payment and expense (and, when signed in to the cloud, the saved copy too). **Back up before you use it.**
 - Clearing browser data / uninstalling the browser erases the cache on that phone; with cloud sync your data comes back when you sign in again. Keep a backup file too.
 - The app shows a red reminder on Home when there is no backup or the last one is over a week old, with Share and Download buttons right there.
@@ -136,22 +137,23 @@ index.html            the whole app (HTML + CSS + JS, no build step)
 config.js             Supabase URL + publishable key (placeholders by default)
 vendor/supabase.js    pinned @supabase/supabase-js 2.119.0 browser build
 supabase/schema.sql   tables, history trigger and row level security
+supabase/migrations/  one file per schema change (002 = resident ID numbers)
 manifest.webmanifest  PWA manifest
 sw.js                 service worker (offline cache + "updated" toast)
 icon-192.png          app icon
 icon-512.png          app icon
-tests/                jsdom tests (smoke, logic, details, electricity, rooms, auth, prorate, cloud)
+tests/                jsdom tests (smoke, logic, details, electricity, rooms, auth, prorate, cloud, ids)
 ```
 
 ## Development
 
 ```bash
 npm install
-npm test        # runs the eight jsdom suites (smoke, logic, details, electricity, rooms, auth, prorate, cloud)
+npm test        # runs the nine jsdom suites (smoke, logic, details, electricity, rooms, auth, prorate, cloud, ids)
 npm run serve   # static server on :8080
 ```
 
-The tests cover the home dashboard, rooms/beds and 1–8 sharing, the resident wizard, mid-month joining and leaving rent, payment receipts and WhatsApp receipts, reminders, reports, CSV/print, backup sharing and restore, erase-everything, masked IDs, large text, rent changes by month, month rollover, vacating, validation, and the account and sync layer (login gate, local account, sessions, Supabase sign-in/sign-up, pull, debounced push, token refresh, offline status) against a mocked Supabase client (`tests/mocksupabase.js`). `tests/cloud.test.js` covers the sync layer: placeholders make no network call at all, first login uploads version 1, pulling on open, the 2 second debounced `update ... where version = ...`, offline then reconnect, the choice screen with both buttons, logout clearing this phone, and the service worker never caching `*.supabase.co`. `tests/prorate.test.js` covers the mid-month engine on its own: joining on the 1st, fixed-30 vs actual days in 30- and 31-day months, the joining day counted and not counted, all three roundings, electricity pro-rated for both hostel types, leaving mid-month with both settings, hand-edited days and amounts, and the settings recalculation including its warning for dues that already have payments.
+The tests cover the home dashboard, rooms/beds and 1–8 sharing, the resident wizard, mid-month joining and leaving rent, payment receipts and WhatsApp receipts, reminders, reports, CSV/print, backup sharing and restore, erase-everything, masked IDs, large text, rent changes by month, month rollover, vacating, validation, and the account and sync layer (login gate, local account, sessions, Supabase sign-in/sign-up, pull, debounced push, token refresh, offline status) against a mocked Supabase client (`tests/mocksupabase.js`). `tests/cloud.test.js` covers the sync layer: placeholders make no network call at all, first login uploads version 1, pulling on open, the 2 second debounced `update ... where version = ...`, offline then reconnect, the choice screen with both buttons, logout clearing this phone, and the service worker never caching `*.supabase.co`. `tests/ids.test.js` covers the ID numbers: the consent box, Aadhaar length and Verhoeff checks, the number never reaching the document (local or uploaded), masking, the PIN-gated reveal with its 30-second hide, the absence of ID numbers in WhatsApp, receipts, CSV and the print report, backups carrying them and restoring them, and resident deletion plus erase-everything removing the `resident_ids` rows. `tests/prorate.test.js` covers the mid-month engine on its own: joining on the 1st, fixed-30 vs actual days in 30- and 31-day months, the joining day counted and not counted, all three roundings, electricity pro-rated for both hostel types, leaving mid-month with both settings, hand-edited days and amounts, and the settings recalculation including its warning for dues that already have payments.
 
 They seed their own small fixture (`tests/fixture.js`) — no sample data ships in the app.
 

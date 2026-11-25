@@ -76,7 +76,8 @@ function boot(opts) {
     const mode = scr.getAttribute('data-mode');
     await pressPin(v);
     if ((mode === 'setup' || mode === 'confirm') && q('#lockLayer .lock-screen')) await pressPin(v);
-    await settle(200);
+    // the PIN is checked against a PBKDF2 hash: wait for the lock to close
+    for (let i = 0; i < 12 && q('#lockLayer .lock-screen'); i++) await settle(80);
     return !q('#lockLayer .lock-screen');
   };
   const unlock = async (o) => {
@@ -264,7 +265,8 @@ function boot(opts) {
   ok(!cloudHtml.q('#lockLayer.open'), 'the PIN comes after the login in cloud mode too');
 
   /* ================================================== 7. backups, sharing and the banner */
-  const app = boot({ seed: seedFixture() });
+  const appSeed = seedFixture();
+  const app = boot({ seed: appSeed });
   await app.unlock();
   ok(!app.q('#authLayer.open'), 'seeded phone signed in');
   ok(!!app.q('.banner.danger'), 'home warns in red when there is no backup');
@@ -280,6 +282,11 @@ function boot(opts) {
   });
   app.act('share-backup');
   await app.settle(180);
+  ok(!!app.q('#confirmLayer .sheet'), 'sharing a backup warns about ID numbers first');
+  ok(/This file contains ID numbers/.test(text(app.q('#confirmLayer'))), 'the warning is explicit');
+  ok(!shared, 'nothing is shared before the warning is accepted');
+  app.act('confirm-yes');
+  await app.settle(220);
   ok(!!shared && Array.isArray(shared.files) && shared.files.length === 1, 'share sheet receives one file');
   ok(/^hostel-backup-\d{4}-\d{2}-\d{2}\.json$/.test(shared.files[0].name), 'shared file is named by date: ' + (shared.files && shared.files[0].name));
   ok(app.db().meta.lastBackup === new Date().toISOString().slice(0, 10), 'sharing records the backup date');
@@ -297,28 +304,37 @@ function boot(opts) {
   await dl.unlock();
   dl.act('share-backup');
   await dl.settle(150);
+  dl.act('confirm-yes');
+  await dl.settle(200);
   ok(dl.w.__downloads.some((x) => /^hostel-backup-/.test(x.name || '')), 'without a share sheet it downloads the file instead');
   ok(dl.db().meta.lastBackup === new Date().toISOString().slice(0, 10), 'download also records the backup date');
 
   /* ================================================== 8. ID proof masking */
   app.act('tab', '[data-tab="residents"]');
   await app.settle();
-  app.click(app.q('.res-card'));
+  const idOwner = appSeed.residents.find((r) => r.idNumber);
+  ok(!!idOwner, 'the seeded resident has an ID number');
+  app.click(app.qa('.res-card').find((c) => text(c).indexOf(idOwner.name) !== -1));
   await app.settle();
   const profileText = text(app.q('.screen'));
   ok(/Show/.test(profileText), 'ID proof has a Show control');
-  const storedId = app.db().residents.find((r) => r.idNumber);
-  ok(!!storedId, 'seeded resident has an ID number');
-  const last4 = storedId.idNumber.slice(-4);
-  ok(profileText.indexOf(storedId.idNumber) === -1, 'the full ID number is hidden by default');
-  ok(/••••/.test(profileText), 'a masked ID is shown instead');
-  app.act('toggle-id');
-  await app.settle();
-  ok(text(app.q('.screen')).indexOf(storedId.idNumber) !== -1, 'tapping Show reveals the full ID');
+  const fullId = idOwner.idNumber.replace(/\s+/g, '');   // stored without spaces
+  const last4 = fullId.slice(-4);
+  ok(app.db().residents.every((r) => !('idNumber' in r)), 'no ID number is left in the hostel document');
+  ok(profileText.indexOf(fullId) === -1, 'the full ID number is hidden by default');
+  ok(/XXXX XXXX/.test(profileText), 'the masked form is XXXX XXXX 1234: ' + profileText.slice(0, 120));
+  ok(profileText.indexOf(last4) !== -1, 'only the last 4 characters are shown');
+  app.act('reveal-id');
+  await app.settle(150);
+  ok(!!app.q('#lockLayer.open'), 'Show asks for the PIN first');
+  ok(text(app.q('.screen')).indexOf(fullId) === -1, 'nothing is revealed before the PIN');
+  await app.pin('1234');
+  await app.settle(220);
+  ok(text(app.q('.screen')).indexOf(fullId) !== -1, 'after the PIN the full ID is shown');
   ok(/Hide/.test(text(app.q('.reveal-btn'))), 'button switches to Hide');
-  app.act('toggle-id');
+  app.act('hide-id');
   await app.settle();
-  ok(text(app.q('.screen')).indexOf(last4) !== -1 && text(app.q('.screen')).indexOf(storedId.idNumber) === -1, 'tapping Hide masks it again');
+  ok(text(app.q('.screen')).indexOf(last4) !== -1 && text(app.q('.screen')).indexOf(fullId) === -1, 'tapping Hide masks it again');
 
   /* ================================================== 9. rent change from a chosen month */
   const twoAgo = mkAdd(thisMk(), -2);

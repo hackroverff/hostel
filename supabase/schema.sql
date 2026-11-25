@@ -108,3 +108,46 @@ create policy "own history - select" on public.app_state_history
 --
 -- Both return zero rows until the app saves for the first time.
 -- ---------------------------------------------------------------------------
+
+-- ===========================================================================
+-- Resident ID numbers (also available on its own as
+-- supabase/migrations/002_resident_ids.sql)
+-- ---------------------------------------------------------------------------
+-- Aadhaar and other ID numbers must never sit inside the app_state document or
+-- its history snapshots, so they live in their own table: one row per resident,
+-- never snapshotted, deleted with the resident. Row level security lets a
+-- signed-in owner select, insert, update and delete only their own rows;
+-- anonymous requests see nothing.
+-- ===========================================================================
+
+create table if not exists public.resident_ids (
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  resident_id text not null,
+  id_type    text,
+  id_number  text,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, resident_id)
+);
+
+alter table public.resident_ids enable row level security;
+
+drop policy if exists "own ids - select" on public.resident_ids;
+create policy "own ids - select" on public.resident_ids
+  for select to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "own ids - insert" on public.resident_ids;
+create policy "own ids - insert" on public.resident_ids
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists "own ids - update" on public.resident_ids;
+create policy "own ids - update" on public.resident_ids
+  for update to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "own ids - delete" on public.resident_ids;
+create policy "own ids - delete" on public.resident_ids
+  for delete to authenticated
+  using (user_id = auth.uid());

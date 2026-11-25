@@ -153,6 +153,7 @@ async function addResident(h, opts) {
   let form = h.q('#sheetLayer form[data-form="resident"]');
   form.elements['name'].value = opts.name;
   form.elements['phone'].value = '9876500011';
+  form.elements['idConsent'].checked = true;
   form.elements['guardianPhone'].value = '9876500022';
   h.act('wiz-next');
   await h.settle();
@@ -406,6 +407,7 @@ async function addResident(h, opts) {
       let f = h.q('#sheetLayer form[data-form="resident"]');
       f.elements['name'].value = 'Prefill ' + propId;
       f.elements['phone'].value = '9876500077';
+      f.elements['idConsent'].checked = true;
       f.elements['guardianPhone'].value = '9876500088';
       h.act('wiz-next');
       await h.settle();

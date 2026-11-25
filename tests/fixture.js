@@ -38,7 +38,7 @@ function seedFixture() {
     Object.assign({}, base, {
       id: 'res_anjali', name: 'Anjali Ramesh', phone: '9840012345',
       guardianName: 'Ramesh Kumar', guardianPhone: '9840098765', college: 'Anna University',
-      idType: 'Aadhaar', idNumber: '4321 8765 2967',
+      idType: 'Aadhaar', idNumber: '4321 8765 2960',
       propertyId: L, roomId: 'room_a101', bedId: 'bed_a101_1',
       joiningDate: mkAdd(cur, -4) + '-01', rent: 5200, proRate: false,
       depositAmount: 10000, depositReceived: true
@@ -46,7 +46,7 @@ function seedFixture() {
     Object.assign({}, base, {
       id: 'res_kavya', name: 'Kavya Balaji', phone: '9840054321',
       guardianName: 'Balaji S', guardianPhone: '9840076543', college: 'Ethiraj College',
-      idType: 'Aadhaar', idNumber: '1122 3344 5566',
+      idType: 'Aadhaar', idNumber: '1122 3344 5564',
       propertyId: L, roomId: 'room_a101', bedId: 'bed_a101_2',
       joiningDate: mkAdd(cur, -3) + '-01', rent: 5200, proRate: false,
       depositAmount: 5000, depositReceived: true

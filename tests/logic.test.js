@@ -90,6 +90,7 @@ async function unlock(h, opts) {
   // invalid phone kept on step 1
   form.elements['name'].value = 'New Resident';
   form.elements['phone'].value = '98765';
+  form.elements['idConsent'].checked = true;
   h.act('wiz-next');
   await h.settle();
   ok(/phone/i.test(text(h.q('#sheetLayer .field.has-error'))), 'short phone number blocked');

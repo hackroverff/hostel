@@ -1,14 +1,17 @@
 /* A tiny stand-in for @supabase/supabase-js (client v2 API surface used by the
    app): auth.signInWithPassword / getSession / signOut and the from(table)
-   query builder with select / eq / limit / insert / update. Every call is
-   recorded so tests can assert exactly what the app sent to the cloud. */
+   query builder with select / eq / limit / insert / update / upsert / delete.
+   Two tables are modelled: app_state (one jsonb document per user) and
+   resident_ids (one row per resident). Every call is recorded so tests can
+   assert exactly what the app sent to the cloud. */
 'use strict';
 
 function makeSupabaseMock(opts) {
   opts = opts || {};
   const state = {
     users: opts.users || { 'owner@hostel.test': { id: 'u-1', password: 'hostel123' } },
-    rows: new Map(Object.entries(opts.rows || {})), // user_id -> { data, version, updated_at }
+    rows: new Map(Object.entries(opts.rows || {})),        // user_id -> { data, version, updated_at }
+    idRows: new Map(Object.entries(opts.idRows || {})),    // 'user_id|resident_id' -> row
     session: opts.session || null,
     calls: [],          // data calls: { table, op, filters, payload }
     authCalls: [],      // sign-in attempts
@@ -30,9 +33,45 @@ function makeSupabaseMock(opts) {
       const kind = state.failNext;
       state.failNext = null;
       if (kind === 'network') throw networkError();
-      return { data: null, error: { message: 'permission denied for table app_state', code: '42501' } };
+      return { data: null, error: { message: 'permission denied for table ' + q.table, code: '42501' } };
     }
-    state.calls.push({ table: q.table, op: q.op, filters: Object.assign({}, q.filters), payload: q.payload });
+    state.calls.push({
+      table: q.table, op: q.op,
+      filters: Object.assign({}, q.filters),
+      payload: q.payload
+    });
+
+    if (q.table === 'resident_ids') {
+      if (q.op === 'select') {
+        const out = [];
+        state.idRows.forEach((row) => {
+          if (q.filters.user_id && row.user_id !== q.filters.user_id) return;
+          if (q.filters.resident_id && row.resident_id !== q.filters.resident_id) return;
+          out.push({
+            resident_id: row.resident_id,
+            id_type: row.id_type,
+            id_number: row.id_number,
+            updated_at: row.updated_at
+          });
+        });
+        return { data: out, error: null };
+      }
+      if (q.op === 'upsert') {
+        const row = q.payload;
+        const key = row.user_id + '|' + row.resident_id;
+        const merged = Object.assign({ updated_at: new Date().toISOString() }, state.idRows.get(key) || {}, row);
+        state.idRows.set(key, merged);
+        return { data: [{ resident_id: row.resident_id }], error: null };
+      }
+      if (q.op === 'delete') {
+        const key = q.filters.user_id + '|' + q.filters.resident_id;
+        const had = state.idRows.has(key);
+        state.idRows.delete(key);
+        return { data: had ? [{ resident_id: q.filters.resident_id }] : [], error: null };
+      }
+      return { data: [], error: null };
+    }
+
     if (q.op === 'select') {
       const row = state.rows.get(q.filters.user_id);
       if (!row) return { data: [], error: null };
@@ -47,13 +86,16 @@ function makeSupabaseMock(opts) {
       return { data: [{ version: row.version }], error: null };
     }
     if (q.op === 'update') {
-      state.calls[state.calls.length - 1].op = 'update';
       const current = state.rows.get(q.filters.user_id);
       if (!current || Number(current.version) !== Number(q.filters.version)) return { data: [], error: null };
       state.rows.set(q.filters.user_id, {
         data: q.payload.data, version: q.payload.version, updated_at: q.payload.updated_at
       });
       return { data: [{ version: q.payload.version }], error: null };
+    }
+    if (q.op === 'delete') {
+      const had = state.rows.delete(q.filters.user_id);
+      return { data: had ? [{ user_id: q.filters.user_id }] : [], error: null };
     }
     return { data: [], error: null };
   }
@@ -66,6 +108,8 @@ function makeSupabaseMock(opts) {
       limit() { return api; },
       insert(row) { q.op = 'insert'; q.payload = [].concat(row); return api; },
       update(row) { q.op = 'update'; q.payload = row; return api; },
+      upsert(row) { q.op = 'upsert'; q.payload = [].concat(row)[0]; return api; },
+      delete() { q.op = 'delete'; return api; },
       then(resolve, reject) { return Promise.resolve().then(() => exec(q)).then(resolve, reject); }
     };
     return api;

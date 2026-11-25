@@ -91,7 +91,7 @@ function boot(o) {
     if (startMode === 'setup' || startMode === 'confirm') {
       if (q('#lockLayer .lock-screen')) await pressPin(v);
     }
-    await settle(200);
+    for (let i = 0; i < 12 && q('#lockLayer .lock-screen'); i++) await settle(80);
     return !q('#lockLayer .lock-screen');
   };
   return { w, d, q, qa, click, act, submit, db, settle, authForm, login, pin, pressPin, network, mock };

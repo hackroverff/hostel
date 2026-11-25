@@ -294,6 +294,7 @@ function oneResidentSeed() {
   const wizForm = wizard.q('#sheetLayer form[data-form="resident"]');
   wizForm.elements['name'].value = 'Checkbox Person';
   wizForm.elements['phone'].value = '9876500011';
+  wizForm.elements['idConsent'].checked = true;
   wizard.act('wiz-next');
   await wizard.settle(150);
   const bedForm = wizard.q('#sheetLayer form[data-form="resident"]');
