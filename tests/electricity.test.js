@@ -23,7 +23,8 @@ function makeDom(seed) {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     beforeParse(w) {
-      w.HOSTEL_CONFIG = { cloud: false };
+      // placeholders in config.js == local-only mode: no network at all
+      w.APP_CONFIG = { SUPABASE_URL: 'PASTE_PROJECT_URL', SUPABASE_KEY: 'PASTE_PUBLISHABLE_KEY' };
       w.scrollTo = () => {};
       w.print = () => {};
       w.URL.createObjectURL = () => 'blob:x';
@@ -46,7 +47,21 @@ function helpers(w) {
     el.dispatchEvent(new w.Event('change', { bubbles: true }));
   };
   const db = () => JSON.parse(w.localStorage.getItem('hostelManager.v1'));
-  const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40));
+  const settle = async (ms) => {
+    await new Promise((r) => setTimeout(r, ms || 40));
+    // The 4-digit PIN now sits on top of the account: clear it automatically.
+    let guard = 0;
+    while (q('#lockLayer .lock-screen') && guard < 4) {
+      guard += 1;
+      const mode = q('#lockLayer .lock-screen').getAttribute('data-mode');
+      for (const ch of '1234') {
+        const key = q('[data-act="pin-digit"][data-digit="' + ch + '"]');
+        if (key) click(key);
+      }
+      await new Promise((r) => setTimeout(r, 450));
+      if (mode === 'locked' && !q('#lockLayer .lock-screen')) break;
+    }
+  };
   return { w, d, q, qa, click, act, submit, change, db, settle };
 }
 async function unlock(h) {
@@ -138,6 +153,7 @@ async function addResident(h, opts) {
   let form = h.q('#sheetLayer form[data-form="resident"]');
   form.elements['name'].value = opts.name;
   form.elements['phone'].value = '9876500011';
+  form.elements['idConsent'].checked = true;
   form.elements['guardianPhone'].value = '9876500022';
   h.act('wiz-next');
   await h.settle();
@@ -391,6 +407,7 @@ async function addResident(h, opts) {
       let f = h.q('#sheetLayer form[data-form="resident"]');
       f.elements['name'].value = 'Prefill ' + propId;
       f.elements['phone'].value = '9876500077';
+      f.elements['idConsent'].checked = true;
       f.elements['guardianPhone'].value = '9876500088';
       h.act('wiz-next');
       await h.settle();

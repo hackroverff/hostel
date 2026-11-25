@@ -1,33 +1,20 @@
-/* Account + cloud-sync tests: login gate, local account, Supabase REST sync, backups, privacy */
+/* Account, PIN and privacy tests: the login gate, the local (offline) account,
+   the 4-digit PIN on top of it, locking, changing the PIN, logging out, and the
+   parts of the app that must keep working with all of that: backups, masked ID
+   numbers, rent changes by month and large text.
+   Cloud sync itself is covered by tests/cloud.test.js with a mocked client. */
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 const { seedFixture, thisMk, mkAdd } = require('./fixture');
+
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 let failures = 0;
 function ok(cond, label) { console.log((cond ? 'PASS  ' : 'FAIL  ') + label); if (!cond) failures++; }
 function text(el) { return (el ? el.textContent : '').replace(/\s+/g, ' ').trim(); }
 
-/* A tiny fetch stand-in: routes by URL substring, records every call. */
-function mockFetch(routes) {
-  const calls = [];
-  const fn = (url, opts) => {
-    const call = { url: String(url), opts: opts || {} };
-    calls.push(call);
-    const route = routes.find((r) => call.url.indexOf(r.match) !== -1 && (!r.method || r.method === call.opts.method));
-    if (!route) return Promise.reject(new Error('unexpected request ' + call.url));
-    if (route.networkError) return Promise.reject(new TypeError('Failed to fetch'));
-    const res = typeof route.reply === 'function' ? route.reply(call) : route.reply;
-    return Promise.resolve({
-      ok: (res.status || 200) < 400,
-      status: res.status || 200,
-      text: () => Promise.resolve(res.body == null ? '' : JSON.stringify(res.body))
-    });
-  };
-  fn.calls = calls;
-  return fn;
-}
+const PLACEHOLDERS = { SUPABASE_URL: 'PASTE_PROJECT_URL', SUPABASE_KEY: 'PASTE_PUBLISHABLE_KEY' };
 
 function boot(opts) {
   opts = opts || {};
@@ -36,299 +23,250 @@ function boot(opts) {
     beforeParse(w) {
       w.scrollTo = () => {};
       w.print = () => {};
-      w.HOSTEL_CONFIG = opts.config || { cloud: false };
+      w.APP_CONFIG = opts.appConfig || PLACEHOLDERS;
+      w.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
       if (opts.seed) w.localStorage.setItem('hostelManager.v1', JSON.stringify(opts.seed));
       Object.keys(opts.storage || {}).forEach((k) => w.localStorage.setItem(k, opts.storage[k]));
-      if (opts.sessionStorage) w.sessionStorage.setItem('hostelManager.session', opts.sessionStorage);
-      if (opts.fetch) w.fetch = opts.fetch;
       w.__downloads = [];
-      w.__online = opts.online !== false;
-      Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => w.__online });
-      let n = 0;
-      w.URL.createObjectURL = () => 'blob:' + (++n);
+      w.URL.createObjectURL = () => 'blob:1';
       w.URL.revokeObjectURL = () => {};
       w.HTMLAnchorElement.prototype.click = function () { w.__downloads.push({ name: this.download }); };
+      w.HTMLElement.prototype.scrollIntoView = function () {};
     }
   });
   const w = dom.window, d = w.document;
   const q = (s) => d.querySelector(s);
   const qa = (s) => Array.from(d.querySelectorAll(s));
-  const click = (el) => { if (!el) throw new Error('missing element'); el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, view: w })); };
-  const act = (a, extra) => { const el = q('[data-act="' + a + '"]' + (extra || '')); if (!el) throw new Error('missing act ' + a + extra); click(el); };
+  const click = (el) => {
+    if (!el) throw new Error('missing element');
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, view: w }));
+  };
+  const act = (a, extra) => {
+    const el = q('[data-act="' + a + '"]' + (extra || ''));
+    if (!el) throw new Error('missing act ' + a + extra);
+    click(el);
+  };
   const submit = (f) => f.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
   const db = () => JSON.parse(w.localStorage.getItem('hostelManager.v1'));
-  const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40));
+  const settle = (ms) => new Promise((r) => setTimeout(r, ms || 60));
   const authForm = () => q('#authLayer form[data-form="login"]');
+  const login = async (username, password) => {
+    await settle(180);
+    const form = authForm();
+    if (!form) return false;
+    const nameEl = form.elements['email'] || form.elements['username'];
+    if (nameEl) nameEl.value = username || 'owner';
+    form.elements['password'].value = password || 'hostel123';
+    if (form.elements['confirm']) form.elements['confirm'].value = password || 'hostel123';
+    submit(form);
+    await settle(400);
+    return true;
+  };
+  const pressPin = async (pin) => {
+    for (const ch of pin) {
+      const key = q('[data-act="pin-digit"][data-digit="' + ch + '"]');
+      if (key) click(key);
+    }
+    await settle(320);
+  };
+  const pin = async (value) => {
+    const v = value || '1234';
+    const scr = q('#lockLayer .lock-screen');
+    if (!scr) return false;
+    const mode = scr.getAttribute('data-mode');
+    await pressPin(v);
+    if ((mode === 'setup' || mode === 'confirm') && q('#lockLayer .lock-screen')) await pressPin(v);
+    // the PIN is checked against a PBKDF2 hash: wait for the lock to close
+    for (let i = 0; i < 12 && q('#lockLayer .lock-screen'); i++) await settle(80);
+    return !q('#lockLayer .lock-screen');
+  };
   const unlock = async (o) => {
     o = o || {};
-    await settle(200);
-    if (!q('#authLayer.open')) return;
-    const form = authForm();
-    form.elements['username'].value = o.username || 'owner';
-    form.elements['password'].value = o.password || 'hostel123';
-    if (form.elements['confirm']) form.elements['confirm'].value = o.confirm || o.password || 'hostel123';
-    if (o.stay === false && form.elements['stay']) form.elements['stay'].checked = false;
-    submit(form);
-    await settle(o.wait || 800);
+    await login(o.username, o.password);
+    if (o.pin === false) return;
+    await pin(o.pinValue || '1234');
+    await settle(o.wait || 120);
   };
   const session = () => {
-    const raw = w.localStorage.getItem('hostelManager.session') || w.sessionStorage.getItem('hostelManager.session');
+    const raw = w.localStorage.getItem('hostelManager.session');
     return raw ? JSON.parse(raw) : null;
   };
-  return { w, d, q, qa, click, act, submit, db, settle, authForm, unlock, session };
-}
-
-function cloudSession(extra) {
-  return JSON.stringify(Object.assign({
-    v: 1.3, cloud: true, stay: true,
-    access_token: 'tok-1', refresh_token: 'ref-1',
-    expires_at: Date.now() + 3600 * 1000,
-    user: { id: 'u-1', email: 'owner@hostel.local', username: 'owner' }
-  }, extra || {}));
+  return { w, d, q, qa, click, act, submit, db, settle, authForm, login, pin, pressPin, unlock, session };
 }
 
 (async function () {
   /* ================================================== 1. fresh phone: the login gate */
   const fresh = boot();
-  await fresh.settle(200);
-  ok(!!fresh.q('#authLayer.open'), 'a fresh phone opens on the login screen');
-  ok(/Create your account/.test(text(fresh.q('.auth-title'))), 'it offers to create an account first');
-  ok(fresh.d.body.classList.contains('is-locked'), 'the app is paused behind the login screen');
-  ok(!fresh.q('.lock-screen') && !fresh.q('.lock-key') && !fresh.q('.pin-dots'), 'no PIN pad exists any more');
-  ok(!/PIN/i.test(text(fresh.d.body)), 'no PIN wording is left anywhere');
+  await fresh.settle(220);
+  ok(!!fresh.q('#authLayer.open'), 'a fresh phone opens on the account screen');
+  ok(/Create your account/.test(text(fresh.q('.auth-title'))), 'it offers to create a local account first');
+  ok(fresh.d.body.classList.contains('is-locked'), 'the app is paused behind the account screen');
+  ok(!fresh.q('#lockLayer.open'), 'the PIN is asked after the account, not before it');
   fresh.act('tab', '[data-tab="rooms"]');
   await fresh.settle(80);
   ok(!fresh.q('.room-card') && !!fresh.q('#authLayer.open'), 'tabs cannot be used until you sign in');
   ok(!!fresh.q('[data-act="auth-forgot"]'), 'forgot password is offered');
-  ok(!!fresh.q('[data-act="auth-toggle"]'), 'switching between sign in and sign up is offered');
+  ok(!!fresh.q('[data-act="auth-toggle"]'), 'a local install can switch to sign-in');
   fresh.act('auth-toggle');
   await fresh.settle(80);
-  ok(/Welcome back/.test(text(fresh.q('.auth-title'))), 'toggle switches to sign-in mode');
+  ok(/Welcome back/.test(text(fresh.q('.auth-title'))), 'the toggle switches to sign-in mode');
   fresh.submit(fresh.authForm());
   await fresh.settle(80);
-  ok(/Enter your username or email/.test(text(fresh.q('.field-error'))), 'empty sign-in is rejected: ' + text(fresh.q('.field-error')).slice(0, 60));
+  ok(/Enter your username/.test(text(fresh.q('.field-error'))), 'an empty sign-in is rejected: ' + text(fresh.q('.field-error')).slice(0, 50));
   ok(!!fresh.q('#authLayer.open'), 'an empty form never opens the app');
 
-  /* ================================================== 2. local account lifecycle */
+  /* ================================================== 2. local account + PIN setup */
   const local = boot();
-  await local.settle(200);
-  await local.unlock();
-  ok(!local.q('#authLayer.open'), 'creating an account opens the app');
+  await local.settle(220);
+  await local.login('owner', 'hostel123');
+  ok(!local.q('#authLayer.open'), 'creating the account closes the account screen');
+  ok(!!local.q('#lockLayer.open'), 'the PIN setup follows straight away');
+  ok(/Set your 4-digit PIN/.test(text(local.q('.lock-title'))), 'it asks for a 4-digit PIN: ' + text(local.q('.lock-title')));
+  ok(local.qa('.lock-key').length === 12, 'the keypad has 10 digits and 2 spare keys');
+  await local.pressPin('1234');
+  ok(/Confirm your PIN/.test(text(local.q('.lock-title'))), 'the PIN has to be typed twice');
+  await local.pressPin('9999');
+  ok(/did not match/.test(text(local.q('.lock-msg'))), 'a mismatch is explained: ' + text(local.q('.lock-msg')));
+  ok(/Set your 4-digit PIN/.test(text(local.q('.lock-title'))), 'and the setup starts again');
+  await local.pressPin('1234');
+  await local.pressPin('1234');
+  await local.settle(300);
+  ok(!local.q('#lockLayer.open'), 'the matching PIN opens the app');
+  ok(!!local.q('.hero'), 'home renders after sign-in');
   ok(!!local.w.localStorage.getItem('hostelManager.account'), 'the account is stored on the phone');
   const acct = JSON.parse(local.w.localStorage.getItem('hostelManager.account'));
-  ok(acct.username === 'owner', 'username is stored: ' + acct.username);
+  ok(acct.username === 'owner', 'the username is stored: ' + acct.username);
   ok(!!acct.salt && !!acct.hash, 'only a salt and a hash are stored');
   ok(JSON.stringify(acct).indexOf('hostel123') === -1, 'the password is never stored in plain text');
+  const pinRec = JSON.parse(local.w.localStorage.getItem('hostelManager.pin'));
+  ok(!!pinRec && !!pinRec.hash && !!pinRec.salt, 'the PIN is stored as a salted hash');
+  ok(JSON.stringify(pinRec).indexOf('1234') === -1, 'the PIN itself is never stored');
   ok(local.session() && local.session().cloud === false, 'a local session is saved');
   ok(!local.w.localStorage.getItem('hostelManager.owner'), 'a local cache stays untagged so it can move to a cloud account later');
   ok(!!local.db() && Array.isArray(local.db().residents), 'hostel data is created and saved');
 
-  // reopen on the same phone with the account in place
+  /* ================================================== 3. reopening the app */
   const stored = {
     'hostelManager.account': local.w.localStorage.getItem('hostelManager.account'),
     'hostelManager.session': local.w.localStorage.getItem('hostelManager.session'),
-    'hostelManager.owner': 'local',
+    'hostelManager.pin': local.w.localStorage.getItem('hostelManager.pin'),
     'hostelManager.v1': local.w.localStorage.getItem('hostelManager.v1')
   };
   const reopen = boot({ storage: stored });
-  await reopen.settle(200);
-  ok(!reopen.q('#authLayer.open'), 'a saved session opens straight into the app');
+  await reopen.settle(250);
+  ok(!reopen.q('#authLayer.open'), 'a saved session skips the account screen');
+  ok(!!reopen.q('#lockLayer.open'), 'but the PIN is still asked');
+  ok(/Enter your PIN/.test(text(reopen.q('.lock-title'))), 'the lock screen asks for the PIN');
+  await reopen.pressPin('0000');
+  ok(!!reopen.q('#lockLayer.open'), 'a wrong PIN keeps the app locked');
+  ok(/Incorrect PIN/.test(text(reopen.q('.lock-msg'))), 'a wrong PIN says so');
+  await reopen.pressPin('1234');
+  await reopen.settle(250);
+  ok(!reopen.q('#lockLayer.open'), 'the right PIN opens the app');
+  ok(reopen.db().residents.length === local.db().residents.length, 'the hostel data is still there');
+
+  // no session -> the account screen, with the PIN still in place afterwards
   const signedOut = boot({ storage: Object.assign({}, stored, { 'hostelManager.session': '' }) });
-  await signedOut.settle(200);
-  ok(!!signedOut.q('#authLayer.open'), 'without a session the login screen is back');
+  await signedOut.settle(250);
+  ok(!!signedOut.q('#authLayer.open'), 'without a session the sign-in screen is back');
   ok(/Welcome back/.test(text(signedOut.q('.auth-title'))), 'a returning phone asks you to sign in');
-  await signedOut.unlock({ password: 'wrong-one' });
-  ok(!!signedOut.q('#authLayer.open'), 'a wrong password keeps the app locked');
-  ok(/Incorrect password/i.test(text(signedOut.q('.auth-msg'))), 'a wrong password explains itself: ' + text(signedOut.q('.auth-msg')).slice(0, 60));
-  await signedOut.unlock();
-  ok(!signedOut.q('#authLayer.open'), 'the right password opens the app');
-  ok(!!signedOut.q('.hero'), 'home renders after signing in');
-  ok(signedOut.db().residents.length === local.db().residents.length, 'the hostel data survived the sign out');
+  await signedOut.login('owner', 'wrong-one');
+  ok(!!signedOut.q('#authLayer.open'), 'a wrong password keeps the app closed');
+  ok(/Incorrect password/i.test(text(signedOut.q('.auth-msg'))), 'a wrong password explains itself: ' + text(signedOut.q('.auth-msg')).slice(0, 50));
+  ok(!signedOut.q('#lockLayer.open'), 'the PIN is not offered until the password is right');
+  await signedOut.login('owner', 'hostel123');
+  ok(!!signedOut.q('#lockLayer.open'), 'the right password leads to the PIN');
+  await signedOut.pressPin('1234');
+  await signedOut.settle(250);
+  ok(!!signedOut.q('.hero'), 'and then into the app');
+  ok(signedOut.db().residents.length === local.db().residents.length, 'the hostel data survived');
 
-  // not staying signed in -> session lives only in this tab
-  const noStay = boot({ storage: { 'hostelManager.account': stored['hostelManager.account'] } });
-  await noStay.settle(200);
-  await noStay.unlock({ stay: false });
-  ok(!!noStay.w.sessionStorage.getItem('hostelManager.session'), 'without "stay signed in" the session is kept in the tab only');
-  ok(!noStay.w.localStorage.getItem('hostelManager.session'), 'nothing persistent is written for a one-off sign-in');
-  ok(!noStay.q('#authLayer.open'), 'that sign-in still opens the app');
+  /* ================================================== 4. locking and changing the PIN */
+  const lock = boot({ storage: stored });
+  await lock.settle(250);
+  await lock.pin('1234');
+  lock.act('tab', '[data-tab="home"]');
+  await lock.settle(80);
+  lock.act('settings');
+  await lock.settle(120);
+  ok(!!lock.q('[data-act="lock-now"]'), 'settings offers Lock now');
+  ok(!!lock.q('[data-act="change-pin"]'), 'settings offers Change PIN');
+  lock.act('lock-now');
+  await lock.settle(120);
+  ok(!!lock.q('#lockLayer.open'), 'Lock now locks the app');
+  ok(await lock.pin('1234'), 'the PIN unlocks it again');
 
-  // log out from Settings
-  noStay.act('tab', '[data-tab="home"]');
-  await noStay.settle();
-  noStay.act('settings');
-  await noStay.settle();
-  ok(!!noStay.q('#syncStatus'), 'settings shows the sync status row');
-  ok(/Local account|Cloud sync off/.test(text(noStay.q('#syncStatus'))), 'the sync row explains where data lives: ' + text(noStay.q('#syncStatus')).slice(0, 80));
-  ok(!!noStay.q('[data-act="logout"]'), 'settings offers Log out');
-  ok(!noStay.q('[data-act="change-pin"]'), 'Change PIN is gone');
-  noStay.act('logout');
-  await noStay.settle(120);
-  ok(!!noStay.q('#confirmLayer .sheet'), 'logging out asks first');
-  noStay.act('confirm-yes');
-  await noStay.settle(200);
-  ok(!!noStay.q('#authLayer.open'), 'logging out returns to the login screen');
-  ok(!noStay.w.localStorage.getItem('hostelManager.session') && !noStay.w.sessionStorage.getItem('hostelManager.session'), 'the session is cleared');
-  ok(!!noStay.w.localStorage.getItem('hostelManager.account'), 'the account stays so you can sign back in');
-  ok(!!noStay.db() && Array.isArray(noStay.db().residents), 'hostel data is not deleted by logging out');
+  lock.act('tab', '[data-tab="home"]');
+  await lock.settle(80);
+  lock.act('settings');
+  await lock.settle(120);
+  lock.act('change-pin');
+  await lock.settle(150);
+  let pinForm = lock.q('#sheetLayer form[data-form="changePin"]');
+  ok(!!pinForm, 'Change PIN opens a sheet');
+  pinForm.elements['current'].value = '0000';
+  pinForm.elements['next'].value = '5555';
+  pinForm.elements['confirm'].value = '5555';
+  lock.submit(pinForm);
+  await lock.settle(300);
+  ok(/not the current PIN/i.test(text(lock.q('#sheetLayer .field-error'))), 'the current PIN is checked: ' + text(lock.q('#sheetLayer .field-error')).slice(0, 40));
+  pinForm = lock.q('#sheetLayer form[data-form="changePin"]');
+  pinForm.elements['current'].value = '1234';
+  pinForm.elements['next'].value = '5555';
+  pinForm.elements['confirm'].value = '5555';
+  lock.submit(pinForm);
+  await lock.settle(400);
+  ok(!lock.q('#sheetLayer form[data-form="changePin"]'), 'a valid change closes the sheet');
+  lock.act('lock-now');
+  await lock.settle(120);
+  await lock.pressPin('1234');
+  ok(!!lock.q('#lockLayer.open'), 'the old PIN no longer works');
+  ok(await lock.pin('5555'), 'the new PIN opens the app');
+
+  /* ================================================== 5. logging out of a local account */
+  const out = boot({ storage: stored });
+  await out.settle(250);
+  await out.pin('1234');
+  out.act('tab', '[data-tab="home"]');
+  await out.settle(80);
+  out.act('settings');
+  await out.settle(120);
+  ok(!!out.q('#syncStatus'), 'settings shows the sync status row');
+  ok(/Local account|Saved on this phone/.test(text(out.q('#syncStatus'))), 'the sync row explains where data lives: ' + text(out.q('#syncStatus')).slice(0, 60));
+  ok(!!out.q('[data-act="logout"]'), 'settings offers Log out');
+  const beforeOut = out.db().residents.length;
+  out.act('logout');
+  await out.settle(150);
+  ok(!!out.q('#lockLayer.open'), 'logging out asks for the PIN first');
+  ok(await out.pin('1234'), 'the PIN is accepted');
+  await out.settle(150);
+  ok(!!out.q('#confirmLayer .sheet'), 'then it asks whether to log out');
+  out.act('confirm-yes');
+  await out.settle(300);
+  ok(!!out.q('#authLayer.open'), 'logging out returns to the sign-in screen');
+  ok(!out.w.localStorage.getItem('hostelManager.session'), 'the session is cleared');
+  ok(!out.w.localStorage.getItem('hostelManager.pin'), 'the PIN is cleared with it');
+  ok(!!out.w.localStorage.getItem('hostelManager.account'), 'the account stays so you can sign back in');
+  ok(!!out.db() && out.db().residents.length === beforeOut, 'a local-only install keeps its data: the phone is the only copy');
 
   // forgot password on a local account
   const forgot = boot({ storage: { 'hostelManager.account': stored['hostelManager.account'] } });
-  await forgot.settle(200);
+  await forgot.settle(250);
   forgot.act('auth-forgot');
   await forgot.settle(120);
-  ok(!!forgot.q('#confirmLayer .sheet'), 'forgot password opens an explanation');
-  ok(/no password reset|create a new account/i.test(text(forgot.q('#confirmLayer'))), 'it explains what a local account can do');
+  ok(/backup/i.test(text(forgot.q('#toast'))), 'forgot password points at a backup file: ' + text(forgot.q('#toast')));
 
-  /* ================================================== 3. Supabase cloud mode */
-  const cloudDb = seedFixture();
-  cloudDb.residents[0].name = 'Cloudy Guest';
-  cloudDb.residents[0].phone = '9000000001';
-  const remoteRow = { data: cloudDb, updated_at: new Date(Date.now() + 60000).toISOString() };
-  const cloudFetch = mockFetch([
-    { match: '/auth/v1/token', method: 'POST', reply: { body: { access_token: 'tok-9', refresh_token: 'ref-9', expires_in: 3600, user: { id: 'u-1', email: 'owner@hostel.local' } } } },
-    { match: '/rest/v1/hostel_data', method: 'GET', reply: { body: [remoteRow] } },
-    { match: '/rest/v1/hostel_data', method: 'POST', reply: { status: 201, body: null } }
-  ]);
-  const cloud = boot({
-    config: { supabaseUrl: 'https://demo.supabase.co', supabaseAnonKey: 'anon-key' },
-    fetch: cloudFetch
-  });
-  await cloud.settle(200);
-  ok(/Welcome back/.test(text(cloud.q('.auth-title'))), 'with cloud keys a returning user is asked to sign in');
-  cloud.act('auth-toggle');
-  await cloud.settle(80);
-  ok(/Your hostel data is saved to your account/.test(text(cloud.q('.auth-sub'))), 'cloud sign-up says data is saved to your account: ' + text(cloud.q('.auth-sub')).slice(0, 70));
-  cloud.act('auth-toggle');
-  await cloud.settle(80);
-  await cloud.unlock({ username: 'owner@hostel.local' });
-  ok(!cloud.q('#authLayer.open'), 'cloud sign-in opens the app');
-  const tokenCall = cloudFetch.calls.find((c) => c.url.indexOf('/auth/v1/token?grant_type=password') !== -1);
-  ok(!!tokenCall, 'sign-in goes through Supabase auth');
-  ok(/^apikey$/.test(Object.keys(tokenCall.opts.headers)[0]) || !!tokenCall.opts.headers.apikey, 'the anon key is sent as apikey');
-  ok(JSON.parse(tokenCall.opts.body).email === 'owner@hostel.local', 'a bare username becomes a hostel.local email');
-  ok(JSON.parse(tokenCall.opts.body).password === 'hostel123', 'the password is posted once, never stored');
-  const getCall = cloudFetch.calls.find((c) => c.opts.method === 'GET');
-  ok(!!getCall && /user_id=eq\.u-1/.test(getCall.url), 'the row is fetched for this user only: ' + (getCall && getCall.url));
-  ok(/select=data,updated_at/.test(getCall.url), 'only the data payload is selected');
-  ok(/Cloudy Guest/.test(text(cloud.q('.screen'))), 'the cloud copy is shown after signing in');
-  ok(cloud.db().residents[0].name === 'Cloudy Guest', 'the local cache is filled from the cloud');
-  ok(!!cloud.session() && cloud.session().access_token === 'tok-9', 'the access token is kept for the session');
-  ok(cloud.w.localStorage.getItem('hostelManager.owner') === 'u-1', 'the cache is tagged with the cloud user');
+  /* ================================================== 6. cloud mode: login before PIN */
+  const cloudHtml = boot({ appConfig: { SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_KEY: 'sb_publishable_x' } });
+  await cloudHtml.settle(250);
+  ok(!!cloudHtml.q('#authLayer.open'), 'with keys the app asks for the account');
+  ok(!!cloudHtml.q('#authLayer input[name="email"]'), 'the cloud screen takes an email address');
+  ok(!cloudHtml.q('[data-act="auth-toggle"]'), 'cloud mode has no sign-up screen');
+  ok(!cloudHtml.q('#lockLayer.open'), 'the PIN comes after the login in cloud mode too');
 
-  cloud.act('tab', '[data-tab="home"]');
-  await cloud.settle();
-  cloud.act('settings');
-  await cloud.settle();
-  ok(!!cloud.q('[data-act="sync-now"]'), 'settings offers Sync now in cloud mode');
-  ok(/Synced/.test(text(cloud.q('#syncStatus'))), 'settings says the data is synced: ' + text(cloud.q('#syncStatus')).slice(0, 60));
-  ok(/u-1|owner/.test(text(cloud.q('.screen'))), 'settings shows who is signed in');
-
-  // a change is pushed automatically
-  const postsBefore = cloudFetch.calls.filter((c) => c.opts.method === 'POST' && c.url.indexOf('/rest/v1/') !== -1).length;
-  const lt = cloud.q('[data-act="toggle-large-text"]');
-  cloud.click(lt);
-  await cloud.settle(1600);
-  const posts = cloudFetch.calls.filter((c) => c.opts.method === 'POST' && c.url.indexOf('/rest/v1/') !== -1);
-  ok(posts.length === postsBefore + 1, 'a data change pushes one row: ' + postsBefore + ' -> ' + posts.length);
-  const pushBody = JSON.parse(posts[posts.length - 1].opts.body)[0];
-  ok(pushBody.user_id === 'u-1', 'the pushed row is keyed by the user');
-  ok(pushBody.data && pushBody.data.settings && pushBody.data.settings.largeText === true, 'the pushed row holds the full data');
-  ok(!!pushBody.updated_at, 'the pushed row carries updated_at');
-  ok(/on_conflict=user_id/.test(posts[posts.length - 1].url), 'the row upserts on user_id');
-  ok(/Synced/.test(text(cloud.q('#syncStatus'))), 'the status goes back to Synced');
-
-  cloud.act('sync-now');
-  await cloud.settle(600);
-  ok(cloudFetch.calls.filter((c) => c.opts.method === 'POST' && c.url.indexOf('/rest/v1/') !== -1).length >= posts.length, 'Sync now pushes again');
-
-  // offline: cache keeps working
-  const offlineFetch = mockFetch([
-    { match: '/rest/v1/hostel_data', method: 'GET', networkError: true },
-    { match: '/rest/v1/hostel_data', method: 'POST', networkError: true }
-  ]);
-  const offline = boot({
-    config: { supabaseUrl: 'https://demo.supabase.co', supabaseAnonKey: 'anon-key' },
-    fetch: offlineFetch,
-    seed: seedFixture(),
-    storage: { 'hostelManager.session': cloudSession(), 'hostelManager.owner': 'u-1' }
-  });
-  await offline.settle(700);
-  offline.act('tab', '[data-tab="home"]');
-  await offline.settle();
-  offline.act('settings');
-  await offline.settle();
-  ok(!offline.q('#authLayer.open'), 'a saved cloud session still opens the app offline');
-  ok(/Offline/.test(text(offline.q('#syncStatus'))), 'offline status is shown: ' + text(offline.q('#syncStatus')).slice(0, 60));
-  ok(!!offline.db() && offline.db().residents.length > 0, 'the offline cache still has the data');
-
-  // wrong cloud password
-  const badFetch = mockFetch([
-    { match: '/auth/v1/token', method: 'POST', reply: { status: 400, body: { error_description: 'Invalid login credentials' } } }
-  ]);
-  const bad = boot({ config: { supabaseUrl: 'https://demo.supabase.co', supabaseAnonKey: 'anon-key' }, fetch: badFetch });
-  await bad.settle(200);
-  await bad.unlock({ username: 'owner@hostel.local', password: 'nope' });
-  ok(!!bad.q('#authLayer.open'), 'a rejected cloud password keeps the app locked');
-  ok(/Invalid login credentials/.test(text(bad.q('.auth-msg'))), 'the cloud error is shown: ' + text(bad.q('.auth-msg')).slice(0, 60));
-
-  // sign up in cloud mode posts to /signup
-  const upFetch = mockFetch([
-    { match: '/auth/v1/signup', method: 'POST', reply: { body: { access_token: 'tok-2', refresh_token: 'ref-2', expires_in: 3600, user: { id: 'u-2' } } } },
-    { match: '/rest/v1/hostel_data', method: 'GET', reply: { body: [] } },
-    { match: '/rest/v1/hostel_data', method: 'POST', reply: { status: 201, body: null } }
-  ]);
-  const up = boot({ config: { supabaseUrl: 'https://demo.supabase.co', supabaseAnonKey: 'anon-key' }, fetch: upFetch });
-  await up.settle(200);
-  up.act('auth-toggle');
-  await up.settle(80);
-  await up.unlock({ username: 'newowner' });
-  ok(!up.q('#authLayer.open'), 'signing up in cloud mode opens the app');
-  ok(upFetch.calls.some((c) => c.url.indexOf('/auth/v1/signup') !== -1), 'sign-up goes through Supabase');
-  const firstPush = upFetch.calls.find((c) => c.opts.method === 'POST' && c.url.indexOf('/rest/v1/hostel_data') !== -1);
-  ok(!!firstPush, 'a brand new cloud account uploads its starting data');
-  up.act('tab', '[data-tab="home"]');
-  await up.settle();
-  up.act('settings');
-  await up.settle();
-  ok(/Synced/.test(text(up.q('#syncStatus'))), 'a brand new account reports Synced: ' + text(up.q('#syncStatus')).slice(0, 50));
-
-  // a stale cloud token is refreshed before use
-  const refreshFetch = mockFetch([
-    { match: '/auth/v1/token?grant_type=refresh_token', method: 'POST', reply: { body: { access_token: 'tok-3', refresh_token: 'ref-3', expires_in: 3600, user: { id: 'u-1' } } } },
-    { match: '/rest/v1/hostel_data', method: 'GET', reply: { body: [] } },
-    { match: '/rest/v1/hostel_data', method: 'POST', reply: { status: 201, body: null } }
-  ]);
-  const stale = boot({
-    config: { supabaseUrl: 'https://demo.supabase.co', supabaseAnonKey: 'anon-key' },
-    fetch: refreshFetch,
-    seed: seedFixture(),
-    storage: { 'hostelManager.session': cloudSession({ expires_at: Date.now() - 5000 }), 'hostelManager.owner': 'u-1' }
-  });
-  await stale.settle(800);
-  ok(refreshFetch.calls.some((c) => c.url.indexOf('grant_type=refresh_token') !== -1), 'an expired token is refreshed');
-  ok(stale.w.localStorage.getItem('hostelManager.session').indexOf('tok-3') !== -1, 'the refreshed token is stored');
-
-  // a different account on the same phone never inherits the cache
-  const switchFetch = mockFetch([
-    { match: '/auth/v1/token', method: 'POST', reply: { body: { access_token: 'tok-7', refresh_token: 'ref-7', expires_in: 3600, user: { id: 'u-7' } } } },
-    { match: '/rest/v1/hostel_data', method: 'GET', reply: { body: [] } },
-    { match: '/rest/v1/hostel_data', method: 'POST', reply: { status: 201, body: null } }
-  ]);
-  const switched = boot({
-    config: { supabaseUrl: 'https://demo.supabase.co', supabaseAnonKey: 'anon-key' },
-    fetch: switchFetch,
-    seed: seedFixture(),
-    storage: { 'hostelManager.owner': 'u-1' }
-  });
-  await switched.settle(200);
-  await switched.unlock({ username: 'someone@hostel.local' });
-  ok(switched.db().residents.length === 0, 'a different user starts from a clean slate: ' + switched.db().residents.length);
-  const newPush = switchFetch.calls.find((c) => c.opts.method === 'POST' && c.url.indexOf('/rest/v1/hostel_data') !== -1);
-  ok(!!newPush && JSON.parse(newPush.opts.body)[0].user_id === 'u-7', 'the clean slate is uploaded to the new account');
-
-  // ------------------------------------------------------------ seeded app: banner, sharing, privacy
-  const app = boot({ seed: seedFixture() });
+  /* ================================================== 7. backups, sharing and the banner */
+  const appSeed = seedFixture();
+  const app = boot({ seed: appSeed });
   await app.unlock();
   ok(!app.q('#authLayer.open'), 'seeded phone signed in');
   ok(!!app.q('.banner.danger'), 'home warns in red when there is no backup');
@@ -344,49 +282,61 @@ function cloudSession(extra) {
   });
   app.act('share-backup');
   await app.settle(180);
+  ok(!!app.q('#confirmLayer .sheet'), 'sharing a backup warns about ID numbers first');
+  ok(/This file contains ID numbers/.test(text(app.q('#confirmLayer'))), 'the warning is explicit');
+  ok(!shared, 'nothing is shared before the warning is accepted');
+  app.act('confirm-yes');
+  await app.settle(220);
   ok(!!shared && Array.isArray(shared.files) && shared.files.length === 1, 'share sheet receives one file');
   ok(/^hostel-backup-\d{4}-\d{2}-\d{2}\.json$/.test(shared.files[0].name), 'shared file is named by date: ' + (shared.files && shared.files[0].name));
   ok(app.db().meta.lastBackup === new Date().toISOString().slice(0, 10), 'sharing records the backup date');
   ok(!app.q('.banner.danger'), 'red warning disappears after a backup');
 
-  // old backup (8 days) still warns
   const eightDaysAgo = new Date(Date.now() - 8 * 86400000).toISOString().slice(0, 10);
   const oldSeed = seedFixture();
   oldSeed.meta.lastBackup = eightDaysAgo;
   const older = boot({ seed: oldSeed });
   await older.unlock();
   ok(!!older.q('.banner.danger'), 'an old backup still warns');
-  ok(/Last backup 8 days ago/.test(text(older.q('.banner.danger'))), 'warning counts the days: ' + text(older.q('.banner.danger')));
+  ok(/Last backup 8 days ago/.test(text(older.q('.banner.danger'))), 'warning counts the ways: ' + text(older.q('.banner.danger')));
 
-  // fallback: no share support -> download
   const dl = boot({ seed: seedFixture() });
   await dl.unlock();
   dl.act('share-backup');
   await dl.settle(150);
+  dl.act('confirm-yes');
+  await dl.settle(200);
   ok(dl.w.__downloads.some((x) => /^hostel-backup-/.test(x.name || '')), 'without a share sheet it downloads the file instead');
   ok(dl.db().meta.lastBackup === new Date().toISOString().slice(0, 10), 'download also records the backup date');
 
-  // ------------------------------------------------------------ ID proof masking
+  /* ================================================== 8. ID proof masking */
   app.act('tab', '[data-tab="residents"]');
   await app.settle();
-  app.click(app.q('.res-card'));
+  const idOwner = appSeed.residents.find((r) => r.idNumber);
+  ok(!!idOwner, 'the seeded resident has an ID number');
+  app.click(app.qa('.res-card').find((c) => text(c).indexOf(idOwner.name) !== -1));
   await app.settle();
   const profileText = text(app.q('.screen'));
   ok(/Show/.test(profileText), 'ID proof has a Show control');
-  const storedId = app.db().residents.find((r) => r.idNumber);
-  ok(!!storedId, 'seeded resident has an ID number');
-  const last4 = storedId.idNumber.slice(-4);
-  ok(profileText.indexOf(storedId.idNumber) === -1, 'the full ID number is hidden by default');
-  ok(/••••/.test(profileText), 'a masked ID is shown instead');
-  app.act('toggle-id');
-  await app.settle();
-  ok(text(app.q('.screen')).indexOf(storedId.idNumber) !== -1, 'tapping Show reveals the full ID');
+  const fullId = idOwner.idNumber.replace(/\s+/g, '');   // stored without spaces
+  const last4 = fullId.slice(-4);
+  ok(app.db().residents.every((r) => !('idNumber' in r)), 'no ID number is left in the hostel document');
+  ok(profileText.indexOf(fullId) === -1, 'the full ID number is hidden by default');
+  ok(/XXXX XXXX/.test(profileText), 'the masked form is XXXX XXXX 1234: ' + profileText.slice(0, 120));
+  ok(profileText.indexOf(last4) !== -1, 'only the last 4 characters are shown');
+  app.act('reveal-id');
+  await app.settle(150);
+  ok(!!app.q('#lockLayer.open'), 'Show asks for the PIN first');
+  ok(text(app.q('.screen')).indexOf(fullId) === -1, 'nothing is revealed before the PIN');
+  await app.pin('1234');
+  await app.settle(220);
+  ok(text(app.q('.screen')).indexOf(fullId) !== -1, 'after the PIN the full ID is shown');
   ok(/Hide/.test(text(app.q('.reveal-btn'))), 'button switches to Hide');
-  app.act('toggle-id');
+  app.act('hide-id');
   await app.settle();
-  ok(text(app.q('.screen')).indexOf(last4) !== -1 && text(app.q('.screen')).indexOf(storedId.idNumber) === -1, 'tapping Hide masks it again');
+  ok(text(app.q('.screen')).indexOf(last4) !== -1 && text(app.q('.screen')).indexOf(fullId) === -1, 'tapping Hide masks it again');
 
-  // ------------------------------------------------------------ rent change from a chosen month
+  /* ================================================== 9. rent change from a chosen month */
   const twoAgo = mkAdd(thisMk(), -2);
   const lastMk = mkAdd(thisMk(), -1);
   const target = app.db().residents.find((r) => {
@@ -431,7 +381,7 @@ function cloudSession(extra) {
   }), 'earlier months keep the old rent');
   ok(after.payments.filter((p) => p.residentId === target.id && p.month === lastMk).every((p) => p.due === oldRent + 700), 'last month also updated');
 
-  // ------------------------------------------------------------ large text
+  /* ================================================== 10. large text */
   app.act('tab', '[data-tab="home"]');
   await app.settle();
   app.act('settings');
@@ -448,7 +398,6 @@ function cloudSession(extra) {
   await app.settle();
   ok(!app.d.documentElement.classList.contains('large-text'), 'large text can be turned off');
 
-  console.log(failures === 0 ? '\nALL AUTH TESTS PASSED' : 
- + failures + ' TEST(S) FAILED');
+  console.log(failures === 0 ? '\nALL AUTH TESTS PASSED' : '\n' + failures + ' TEST(S) FAILED');
   process.exit(failures ? 1 : 0);
 })().catch((e) => { console.error('TEST CRASH', e); process.exit(2); });

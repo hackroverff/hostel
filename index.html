@@ -651,6 +651,66 @@ html.large-text .pro-total{font-size:16px}
 .auth-foot{margin-top:12px;font-size:11.5px;color:#A9BCF5;line-height:1.55}
 .auth-foot b{color:#E2E9FF}
 
+#lockLayer{position:fixed;inset:0;z-index:100;display:none}
+#lockLayer.open{display:block}
+.lock-screen{
+  position:absolute;inset:0;overflow-y:auto;
+  background:linear-gradient(160deg,#0D2160 0%,#1E40AF 55%,#2B5BE0 100%);
+  color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(22px + env(safe-area-inset-bottom,0px));
+}
+.lock-glow{position:absolute;width:440px;height:440px;border-radius:50%;top:-170px;right:-150px;pointer-events:none;
+  background:radial-gradient(circle at center,rgba(255,255,255,.16),rgba(255,255,255,0) 68%)}
+.lock-inner{width:100%;max-width:330px;text-align:center;position:relative;margin:auto 0}
+.lock-mark{width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 12px 26px -14px rgba(0,0,0,.6)}
+.lock-brand{font-size:14px;font-weight:700;color:#C9D6FF;letter-spacing:.3px}
+.lock-title{font-size:24px;font-weight:750;letter-spacing:-.5px;margin-top:3px}
+.lock-sub{font-size:13.5px;color:#C9D6FF;margin-top:6px;line-height:1.45;min-height:38px}
+.pin-dots{display:flex;gap:15px;justify-content:center;margin:18px 0 6px}
+.pin-dots span{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.45);transition:background .12s,transform .12s}
+.pin-dots span.on{background:#fff;border-color:#fff;transform:scale(1.08)}
+.pin-dots.error span{border-color:#FCA5A5}
+.pin-dots.shake{animation:pinShake .32s}
+@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.lock-msg{min-height:22px;font-size:13px;font-weight:650;color:#FFD7D7;margin-bottom:8px}
+.lock-msg.ok{color:#A7F3D0}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+.lock-key{
+  height:60px;border-radius:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.17);
+  color:#fff;font-size:25px;font-weight:600;display:grid;place-items:center;
+  transition:transform .1s,background .12s;
+}
+.lock-key:active{transform:scale(.95);background:rgba(255,255,255,.22)}
+.lock-key.blank{background:transparent;border-color:transparent;pointer-events:none}
+.lock-key.delete{font-size:13px;font-weight:700;letter-spacing:.2px;color:#DCE5FF}
+.lock-link{margin-top:12px;color:#C9D6FF;font-size:13.5px;font-weight:650;min-height:48px;padding:0 14px;border-radius:12px}
+.lock-link:active{background:rgba(255,255,255,.1)}
+.lock-help{margin-top:14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:14px;text-align:left;color:#E7EDFF;font-size:13px;line-height:1.5}
+.lock-help b{display:block;font-size:14.5px;margin-bottom:4px;color:#fff}
+.lock-help .btn{margin-top:10px;min-height:48px}
+.lock-help .btn.ghost{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)}
+.lock-foot{margin-top:18px;font-size:11.5px;color:#A9BCF5}
+
+/* ---------- cloud sync: choice screen + header chip ---------- */
+#conflictLayer{position:fixed;inset:0;z-index:106;display:none}
+#conflictLayer.open{display:block}
+.copy-row{display:flex;gap:10px;align-items:flex-start;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.14)}
+.copy-row:first-child{padding-top:2px}
+.copy-k{flex:0 0 84px;font-size:11.5px;font-weight:750;letter-spacing:.4px;text-transform:uppercase;color:#C9D6FF;padding-top:2px}
+.copy-v{flex:1;min-width:0;font-size:13px;line-height:1.45;color:#fff;overflow-wrap:anywhere}
+.copy-v .muted{color:#B9C8F2;font-size:12px}
+.sync-chip{
+  display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;max-width:124px;
+  border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:750;letter-spacing:-.1px;
+  background:#F1F5F9;color:#475569;border:1px solid var(--line);white-space:nowrap;overflow:hidden;
+}
+.sync-chip span:last-child{overflow:hidden;text-overflow:ellipsis}
+.sync-chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.sync-chip.good{background:var(--green-bg);color:#15803D;border-color:#BBF7D0}
+.sync-chip.warn{background:#FFF7ED;color:#B45309;border-color:#FDE3C0}
+.sync-chip.busy{background:#EFF6FF;color:#1D4ED8;border-color:#DBEAFE}
+.sync-chip.plain{background:#F8FAFC;color:#64748B}
+
 /* ---------- large text mode (+15%) ---------- */
 html.large-text body{font-size:18.4px}
 html.large-text .brand-name{font-size:19.5px}
@@ -772,6 +832,8 @@ html.large-text .receipt-hero .rs{font-size:15px}
 <div id="sheetLayer"></div>
 <div id="confirmLayer"></div>
 <div id="authLayer" aria-live="polite"></div>
+<div id="lockLayer" aria-live="polite"></div>
+<div id="conflictLayer" aria-live="polite"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="print-root" id="printRoot"></div>
 <noscript>
@@ -781,24 +843,21 @@ html.large-text .receipt-hero .rs{font-size:15px}
   </div>
 </noscript>
 
+<script src="./config.js"></script>
+<script src="./vendor/supabase.js"></script>
 <script>
 (function () {
 'use strict';
 
 /* ===========================================================================
-   0. SUPABASE CONFIG  (edit these two lines to turn on cloud login + sync)
+   0. CLOUD CONFIG
    ---------------------------------------------------------------------------
-   1. Create a free project at https://supabase.com
-   2. Run the SQL in README.md ("Supabase setup") to create hostel_data + RLS.
-   3. Paste the Project URL and the anon/public key below (or provide them as
-      window.HOSTEL_CONFIG = { supabaseUrl, supabaseAnonKey }, as
-      <meta name="hostel-supabase-url" content="..."> + hostel-supabase-key,
-      or in localStorage 'hostelManager.config').
-   Leave both blank to use a local account on this phone only.
+   The Supabase project URL and its publishable key live in config.js
+   (window.APP_CONFIG); the browser client is vendored in vendor/supabase.js.
+   While config.js still has the PASTE_ placeholders this app is local-only:
+   the account and all data stay on this phone and work with no internet.
+   Setup steps: "Supabase setup" in README.md, SQL in supabase/schema.sql.
    =========================================================================== */
-var SUPABASE_URL = 'https://bnrvaeudufyltshohnzj.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_Joq8YjUfBocjr0V-EcLnGw_VKNVDMCO';
-var SUPABASE_TABLE = 'hostel_data';
 
 /* ===========================================================================
    1. Small helpers
@@ -822,14 +881,6 @@ function clamp(n, a, b) { return Math.min(b, Math.max(a, n)); }
 function plural(n, one, many) { var v = num(n); return v + ' ' + (v === 1 ? one : (many || one + 's')); }
 function uid(prefix) {
   return (prefix || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-
-/* mask an ID number, showing only the last 4 characters */
-function maskId(id) {
-  var v = String(id == null ? '' : id).trim();
-  if (!v) return '\u2014';
-  if (v.length <= 4) return '\u2022\u2022\u2022\u2022';
-  return '\u2022\u2022\u2022\u2022 ' + v.slice(-4);
 }
 
 /* apply the saved reading preferences */
@@ -1105,6 +1156,9 @@ function upgrade(d) {
     });
   });
   d.expenses.forEach(function (e) { e.amount = num(e.amount); });
+  // ID numbers never belong to the hostel document (it is uploaded, snapshotted
+  // and exported): move any number from an older version into the ID store.
+  stashLegacyIds(d);
   ensureBedsForRooms(d);
   return d;
 }
@@ -1718,6 +1772,7 @@ function deleteResidentDeep(resident) {
   freeBedOf(resident);
   db.residents = db.residents.filter(function (r) { return r.id !== resident.id; });
   db.payments = db.payments.filter(function (p) { return p.residentId !== resident.id; });
+  removeIdFor(resident.id);
   save();
   syncElectricity();
 }
@@ -1923,7 +1978,7 @@ function topbar(opts) {
       '<div class="grow"><div style="font-size:17px;font-weight:750;letter-spacing:-.2px" class="truncate">' + esc(opts.title || '') + '</div>' +
       (opts.sub ? '<div class="brand-sub truncate">' + esc(opts.sub) + '</div>' : '') + '</div></div>'
       : left) +
-    '<div class="row" style="gap:8px">' + (opts.right || '') + '</div>' +
+    '<div class="row" style="gap:8px">' + syncChipHTML() + (opts.right || '') + '</div>' +
     '</div>' + (opts.switcher ? '<div style="margin-top:8px">' + propertySwitcher() + '</div>' : '') + '</header>';
 }
 
@@ -2293,10 +2348,11 @@ function renderResidentProfile(id) {
       '<a class="btn ghost sm" href="' + attr(waLink(r.guardianPhone, 'Hello, this is about ' + r.name + '\u2019s stay at ' + propName(r.propertyId) + '.')) + '" target="_blank" rel="noopener">' + icon('whatsapp', 17) + ' Message</a></div>' : '') +
     '<div class="kv"><div class="k">College / work</div><div class="v">' + esc(r.college || '\u2014') + '</div></div>' +
     '<div class="kv"><div class="k">ID proof</div><div class="v">' + esc(r.idType || '\u2014') +
-      (r.idNumber
-        ? '<div class="row-between" style="gap:8px;align-items:center"><span class="small ' + (ui.revealedIds[r.id] ? '' : 'muted') + '" style="letter-spacing:' + (ui.revealedIds[r.id] ? '0' : '.08em') + '">' + esc(ui.revealedIds[r.id] ? r.idNumber : maskId(r.idNumber)) + '</span>' +
-          '<button class="reveal-btn" data-act="toggle-id" data-id="' + attr(r.id) + '" aria-label="' + (ui.revealedIds[r.id] ? 'Hide ID number' : 'Show ID number') + '">' + icon('eye', 15) + (ui.revealedIds[r.id] ? ' Hide' : ' Show') + '</button></div>'
-        : '') + '</div></div>' +
+      (hasIdNumber(r.id)
+        ? '<div class="row-between" style="gap:8px;align-items:center"><span class="small ' + (isIdRevealed(r.id) ? '' : 'muted') + '" style="letter-spacing:' + (isIdRevealed(r.id) ? '.02em' : '.08em') + '" id="idNumberValue">' + esc(isIdRevealed(r.id) ? idNumberFor(r.id) : maskIdNumber(idNumberFor(r.id))) + '</span>' +
+          '<button class="reveal-btn" data-act="' + (isIdRevealed(r.id) ? 'hide-id' : 'reveal-id') + '" data-id="' + attr(r.id) + '" aria-label="' + (isIdRevealed(r.id) ? 'Hide ID number' : 'Show ID number') + '">' + icon('eye', 15) + (isIdRevealed(r.id) ? ' Hide' : ' Show') + '</button></div>' +
+          (isIdRevealed(r.id) ? '<div class="tiny muted" style="margin-top:2px">Hides again in 30 seconds. Enter your PIN to show it.</div>' : '<div class="tiny muted" style="margin-top:2px">Enter your PIN to show the full number.</div>')
+        : '<div class="tiny muted" style="margin-top:2px">No ID number saved</div>') + '</div></div>' +
     '<div class="kv"><div class="k">Joining date</div><div class="v">' + esc(fmtDate(r.joiningDate)) + '</div></div>' +
     '<div class="kv"><div class="k">Monthly rent</div><div class="v t-num">' + money(r.rent) + '</div></div>' +
     (r.notes ? '<div class="kv"><div class="k">Notes</div><div class="v" style="font-weight:500;white-space:pre-wrap">' + esc(r.notes) + '</div></div>' : '') +
@@ -3001,7 +3057,7 @@ function closeSheet() {
   ui.sheet = null;
   ui.elecEdit = false;
   $('#sheetLayer').innerHTML = '';
-  if (!authState.visible) document.body.classList.remove('is-locked');
+  refreshBodyLock();
   // remove any transient errors / focus
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
@@ -3021,6 +3077,7 @@ function renderSheet() {
     else if (n === 'install') html = sheetInstall();
     else if (n === 'receipt') html = sheetReceipt();
     else if (n === 'elecBill') html = sheetElecBill(p);
+    else if (n === 'changePin') html = sheetChangePin();
   } catch (e) {
     console.error('Sheet failed', e);
     html = sheetShell({ title: 'Something went wrong', body: '<div class="sheet-body"><p class="muted">Please close this and try again.</p></div>' });
@@ -3039,7 +3096,7 @@ function askConfirm(opts) {
 function closeConfirm() {
   ui.confirm = null;
   renderConfirm();
-  if (!ui.sheet && !authState.visible) document.body.classList.remove('is-locked');
+  refreshBodyLock();
 }
 function renderConfirm() {
   var layer = $('#confirmLayer');
@@ -3189,7 +3246,7 @@ function applyRentFrom(resId, fromMonth, newRent) {
 }
 function newDraft() {
   return {
-    name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '',
+    name: '', phone: '', guardianName: '', guardianPhone: '', college: '', idType: 'Aadhaar', idNumber: '', idConsent: false,
     photo: '', propertyId: (ui.prop !== 'all' ? ui.prop : db.properties[0].id), roomId: '', bedId: '',
     joiningDate: todayISO(), rent: propertyRent(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
     depositAmount: propertyAdvance(ui.prop !== 'all' ? ui.prop : db.properties[0].id),
@@ -3205,7 +3262,7 @@ function openResidentWizard(id, bedId) {
       mode: 'edit', id: id, step: 0, status: r.status,
       data: {
         name: r.name, phone: r.phone || '', guardianName: r.guardianName || '', guardianPhone: r.guardianPhone || '',
-        college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: r.idNumber || '', photo: r.photo || '',
+        college: r.college || '', idType: r.idType || 'Aadhaar', idNumber: idNumberFor(r.id), idConsent: true, photo: r.photo || '',
         propertyId: r.propertyId, roomId: r.roomId || '', bedId: r.bedId || '', joiningDate: r.joiningDate || todayISO(),
         rent: num(r.rent), depositAmount: num(r.depositAmount),
         depositReceived: !!r.depositReceived, notes: r.notes || '', rentFrom: thisMonth(),
@@ -3308,10 +3365,7 @@ function wizBody(data, step) {
       '<div class="field"><label>Guardian phone</label><input class="input" name="guardianPhone" inputmode="numeric" maxlength="10" placeholder="10 digits" value="' + attr(data.guardianPhone) + '"><div class="field-error"></div></div>' +
       '</div>' +
       '<div class="field"><label>College or workplace</label><input class="input" name="college" placeholder="e.g. Anna University" value="' + attr(data.college) + '"></div>' +
-      '<div class="form-grid">' +
-      '<div class="field"><label>ID proof</label><select class="select" name="idType">' + ID_TYPES.map(function (t) { return '<option' + (data.idType === t ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="field"><label>ID number</label><input class="input" name="idNumber" placeholder="Number" value="' + attr(data.idNumber) + '"></div>' +
-      '</div>';
+      idFieldsHTML(data, ui.wizard.mode !== 'edit');
   }
   if (step === 1) {
     var propRooms = db.rooms.filter(function (r) { return r.propertyId === data.propertyId; });
@@ -3402,6 +3456,8 @@ function captureWizard() {
   });
   var received = form.elements['depositReceived'];
   if (received) d.depositReceived = !!received.checked;
+  var consent = form.elements['idConsent'];
+  if (consent) d.idConsent = !!consent.checked;
 }
 
 function validatePhoneField(field, value, required, label) {
@@ -3443,6 +3499,13 @@ function wizardNext() {
     if (!val(form, 'name') || val(form, 'name').length < 2) ok = setError(fieldOf(form.elements['name']), 'Please enter the full name');
     ok = validatePhoneField(fieldOf(form.elements['phone']), val(form, 'phone'), true, 'Phone number') && ok;
     ok = validatePhoneField(fieldOf(form.elements['guardianPhone']), val(form, 'guardianPhone'), false, 'Guardian phone') && ok;
+    var idCheck = validateIdNumber(w.data.idType, w.data.idNumber);
+    if (!idCheck.ok) ok = setError(fieldOf(form.elements['idNumber']), idCheck.error);
+    if (ok && w.mode !== 'edit' && !w.data.idConsent) {
+      var consentErr = $('#idConsentError');
+      if (consentErr) consentErr.textContent = 'Please tick this before adding the resident';
+      ok = false;
+    }
   } else if (w.step === 1) {
     var optionalRoom = w.status === 'Vacated';
     if (!optionalRoom && !val(form, 'roomId')) ok = setError(fieldOf(form.elements['roomId']), 'Choose a room');
@@ -3497,10 +3560,19 @@ function saveResidentForm(form) {
     rent: (firstMode === 'prorated' && firstPlan.edited) ? firstPlan.rent : null,
     edited: firstMode === 'prorated' ? !!firstPlan.edited : false
   };
+  // The ID number is validated here and kept in its own store; the document
+  // only ever carries the ID *type*.
+  var idCheck = validateIdNumber(w.data.idType, w.data.idNumber);
+  if (!idCheck.ok) {
+    toast(idCheck.error, 'bad');
+    closeSheet();
+    openResidentWizard(w.mode === 'edit' ? w.id : null);
+    return;
+  }
   var fields = {
     name: w.data.name.trim(), phone: cleanPhone(w.data.phone), guardianName: w.data.guardianName.trim(),
     guardianPhone: cleanPhone(w.data.guardianPhone), college: w.data.college.trim(),
-    idType: w.data.idType, idNumber: w.data.idNumber.trim(), photo: w.data.photo || '',
+    idType: w.data.idType, photo: w.data.photo || '',
     propertyId: w.data.propertyId, roomId: roomId, bedId: bedId,
     joiningDate: joining, rent: rent, firstMonth: firstMonth,
     depositAmount: deposit, depositReceived: !!w.data.depositReceived,
@@ -3513,6 +3585,7 @@ function saveResidentForm(form) {
     var oldBed = resident.bedId;
     var oldRent = resident.rent;
     Object.keys(fields).forEach(function (k) { resident[k] = fields[k]; });
+    delete resident.idNumber;
     if (rent !== num(oldRent)) {
       applyRentFrom(resident.id, w.data.rentFrom || thisMonth(), rent);
       var newDues = db.payments.filter(function (x) {
@@ -3534,6 +3607,7 @@ function saveResidentForm(form) {
   reconcileBeds();
   ensureDues();
   save();
+  setIdFor(resident.id, fields.idType, idCheck.value);
   closeSheet();
   render();
   toast(w.mode === 'edit' ? 'Resident updated' : 'Resident added', 'good');
@@ -4012,10 +4086,14 @@ function renderSettings() {
     '<div class="set-row" id="syncStatus">' + syncStatusHTML() + '</div>' +
     (session && session.cloud
       ? '<button class="set-row" data-act="sync-now"><span class="si">' + icon('cloud', 18) + '</span>' +
-        '<span class="grow"><span class="st">Sync now</span><span class="ss">Save this phone\u2019s data to the cloud</span></span>' + icon('chevronRight', 18, 'chev') + '</button>'
+        '<span class="grow"><span class="st">Sync now</span><span class="ss">Save this phone\u2019s copy to the cloud</span></span>' + icon('chevronRight', 18, 'chev') + '</button>'
       : '') +
+    '<button class="set-row" data-act="lock-now"><span class="si">' + icon('lock', 18) + '</span>' +
+    '<span class="grow"><span class="st">Lock now</span><span class="ss">Ask for your 4-digit PIN</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
+    '<button class="set-row" data-act="change-pin"><span class="si">' + icon('shield', 18) + '</span>' +
+    '<span class="grow"><span class="st">Change PIN</span><span class="ss">4 digits that unlock this phone</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<button class="set-row danger" data-act="logout"><span class="si">' + icon('logout', 18) + '</span>' +
-    '<span class="grow"><span class="st">Log out</span><span class="ss">Lock the app and go back to the sign-in screen</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
+    '<span class="grow"><span class="st">Log out</span><span class="ss">Ask for your PIN, then go back to sign-in</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '</div>' +
 
   '<div class="set-label">Display</div>' +
@@ -4030,11 +4108,11 @@ function renderSettings() {
     '<button class="set-row" data-act="install-help"><span class="si">' + icon('phone', 18) + '</span>' +
     '<span class="grow"><span class="st">Install on home screen</span><span class="ss">Open like a normal app, works offline</span></span>' + icon('chevronRight', 18, 'chev') + '</button>' +
     '<div class="set-row"><span class="si">' + icon('info', 18) + '</span>' +
-    '<span class="grow"><span class="st">Hostel Manager</span><span class="ss">Version 1.1 \u00B7 Account login \u00B7 Works offline</span></span></div>' +
+    '<span class="grow"><span class="st">Hostel Manager</span><span class="ss">Version 1.2 \u00B7 Cloud sync \u00B7 Works offline</span></span></div>' +
     '</div>';
 
   h += '<div class="tiny muted center" style="padding:6px 20px 20px;line-height:1.6">' +
-    (cloud.config.configured ? 'Your hostel data is saved to your account and cached on this phone.<br>Keep a weekly backup too, just in case.' : 'Your data stays on this phone.<br>Keep a weekly backup to be safe.') + '</div>';
+    (cloud.config.configured ? 'Your hostel data is saved to your Supabase project and cached on this phone.<br>Keep a weekly backup too, just in case.' : 'Your data stays on this phone.<br>Keep a weekly backup to be safe.') + '</div>';
   h += '</div>';
   return h;
 }
@@ -4158,9 +4236,17 @@ function sheetInstall() {
    24. BACKUP / RESTORE
    =========================================================================== */
 function backupPayload() {
+  // The document itself never holds a number; they travel beside it so a
+  // restore can put them back into resident_ids.
+  var idRows = Object.keys(idStore.rows).map(function (rid) {
+    return { residentId: rid, idType: idStore.rows[rid].idType, idNumber: idStore.rows[rid].idNumber };
+  });
   return {
     name: 'hostel-backup-' + todayISO() + '.json',
-    payload: { app: 'Hostel Manager', version: 1, exportedAt: new Date().toISOString(), data: db }
+    payload: {
+      app: 'Hostel Manager', version: 2, exportedAt: new Date().toISOString(),
+      data: db, idNumbers: idRows
+    }
   };
 }
 function markBackedUp() {
@@ -4168,14 +4254,14 @@ function markBackedUp() {
   save();
   render();
 }
-function backupData() {
+function downloadBackupNow() {
   var b = backupPayload();
   if (downloadFile(b.name, JSON.stringify(b.payload, null, 2), 'application/json')) {
     markBackedUp();
     toast('Backup saved \u00B7 keep it safe', 'good');
   }
 }
-function shareBackup() {
+function shareBackupNow() {
   var b = backupPayload();
   var json = JSON.stringify(b.payload, null, 2);
   var file = null;
@@ -4192,13 +4278,32 @@ function shareBackup() {
         })
         .catch(function (err) {
           if (err && err.name === 'AbortError') return;
-          backupData();
+          downloadBackupNow();
         });
       return;
     }
   }
-  backupData();
+  downloadBackupNow();
 }
+/* Every backup file can contain ID numbers, so say so before it leaves. */
+function requestBackup(kind) {
+  var count = Object.keys(idStore.rows).length;
+  askConfirm({
+    title: count ? 'This file contains ID numbers' : 'Save a backup?',
+    icon: 'alert',
+    message: count
+      ? 'Share only with yourself. It includes the ID numbers of <b>' + plural(count, 'resident') + '</b>.<br><br>Anyone who opens the file can read them.'
+      : 'It holds names, phone numbers and rent records. Share only with yourself.',
+    confirmLabel: kind === 'share' ? 'Share backup' : 'Save backup',
+    onYes: function () {
+      closeConfirm();
+      if (kind === 'share') shareBackupNow();
+      else downloadBackupNow();
+    }
+  });
+}
+function backupData() { requestBackup('download'); }
+function shareBackup() { requestBackup('share'); }
 function toggleLargeText() {
   db.settings.largeText = !db.settings.largeText;
   save();
@@ -4228,6 +4333,10 @@ function handleRestoreFile(file) {
               ensureBedsForRooms(db);
               reconcileBeds();
               ensureDues();
+              restoreIdNumbers(parsed && parsed.idNumbers);
+              // The file carries the version of the phone it came from: keep
+              // this phone's place in the cloud, then push the restored copy.
+              if (db.meta) { db.meta.cloudVersion = cloud.version || 0; db.meta.cloudAt = cloud.at || null; }
               save();
               ui.prop = 'all'; ui.payMonth = thisMonth(); ui.payFilter = 'all';
               ui.resFilter = 'active'; ui.resQuery = '';
@@ -4238,7 +4347,15 @@ function handleRestoreFile(file) {
               closeSheet();
               closeConfirm();
               save();
-              if (session && session.cloud) syncNow();
+              if (cloudReady()) syncNow();
+              // Restoring from the lock screen is the documented way out of a
+              // forgotten PIN: the restored file becomes the way in, so ask
+              // for a fresh PIN instead of the one nobody knows.
+              if (pinState.resetOnRestore) {
+                pinState.resetOnRestore = false;
+                clearPinRecord();
+                showLock('setup');
+              }
               toast('Backup restored', 'good');
             } catch (e) {
               console.warn(e);
@@ -4261,6 +4378,7 @@ function handleRestoreFile(file) {
 
 function clearAllData() {
   try {
+    dropAllIds();
     db = blankDB();
     save();
     ui.prop = 'all'; ui.payMonth = thisMonth(); ui.payFilter = 'all';
@@ -4270,6 +4388,7 @@ function clearAllData() {
     closeConfirm();
     render();
     window.scrollTo(0, 0);
+    if (cloudReady()) syncNow();
     toast('Everything erased', 'good');
   } catch (e) {
     console.warn(e);
@@ -4287,127 +4406,439 @@ function requestEraseAll() {
 }
 
 /* ===========================================================================
-   25b. ACCOUNT (username + password) AND SUPABASE CLOUD SYNC
+   24b. RESIDENT ID NUMBERS  (kept apart from the hostel document)
    ---------------------------------------------------------------------------
-   The two constants at the top of this file (SUPABASE_URL / SUPABASE_ANON_KEY)
-   turn on cloud sign-in and syncing. They can also come from
-   window.HOSTEL_CONFIG = { supabaseUrl, supabaseAnonKey }, from
-   <meta name="hostel-supabase-url"> / <meta name="hostel-supabase-key">, or from
-   localStorage 'hostelManager.config'. With no config the app uses a local
-   account on this device and keeps working offline.
+   Aadhaar and the other ID numbers never go inside `db`: the hostel document is
+   uploaded, snapshotted into app_state_history and exported, so the numbers
+   live in their own local store (localStorage 'hostelManager.ids') and their
+   own cloud table (resident_ids, one row per resident).
 
-   Run this once in the Supabase SQL editor (it keeps every row private):
+   The main document keeps only the ID *type* (a label such as "Aadhaar") and
+   the resident id the number belongs to.
 
-     create table public.hostel_data (
-       user_id uuid primary key references auth.users on delete cascade,
-       data jsonb not null,
-       updated_at timestamptz not null default now()
-     );
-     alter table public.hostel_data enable row level security;
-     create policy "own row" on public.hostel_data for all
-       using (auth.uid() = user_id) with check (auth.uid() = user_id);
+   Local shape:
+     { v: 1,
+       rows:    { [residentId]: { idType, idNumber, updatedAt } },
+       dirty:   { [residentId]: true },      // needs an upload
+       deleted: { [residentId]: timestamp } } // needs a cloud delete
+   =========================================================================== */
+var IDS_KEY = 'hostelManager.ids';
+var ID_TABLE = 'resident_ids';
+var ID_REVEAL_MS = (typeof window !== 'undefined' && Number(window.__idRevealMs)) || 30 * 1000;
 
-   Then: POST /auth/v1/token?grant_type=password (and /signup, /recover,
-   /logout) for auth, and GET|POST /rest/v1/hostel_data?on_conflict=user_id
-   for the single JSONB row per user.
+function blankIdStore() { return { v: 1, rows: {}, dirty: {}, deleted: {} }; }
+function readIdStore() {
+  try {
+    var raw = safeGet('localStorage', IDS_KEY);
+    if (!raw) return blankIdStore();
+    var s = JSON.parse(raw);
+    if (!s || typeof s !== 'object') return blankIdStore();
+    return { v: 1, rows: s.rows || {}, dirty: s.dirty || {}, deleted: s.deleted || {} };
+  } catch (e) {
+    return blankIdStore();
+  }
+}
+function writeIdStore() { return safeSet('localStorage', IDS_KEY, JSON.stringify(idStore)); }
+var idStore = readIdStore();
+
+function idNumberFor(residentId) {
+  var rec = idStore.rows[residentId];
+  return rec && rec.idNumber ? String(rec.idNumber) : '';
+}
+function hasIdNumber(residentId) { return !!idNumberFor(residentId); }
+
+/* Stores (or clears) the number for one resident and queues the sync. */
+function setIdFor(residentId, idType, idNumber) {
+  if (!residentId) return;
+  var number = String(idNumber == null ? '' : idNumber).trim();
+  if (!number) { removeIdFor(residentId); return; }
+  idStore.rows[residentId] = {
+    idType: String(idType || 'Other'),
+    idNumber: number,
+    updatedAt: new Date().toISOString()
+  };
+  delete idStore.deleted[residentId];
+  idStore.dirty[residentId] = true;
+  writeIdStore();
+  scheduleIdSync();
+}
+function removeIdFor(residentId) {
+  if (!residentId) return;
+  var had = !!idStore.rows[residentId];
+  delete idStore.rows[residentId];
+  delete idStore.dirty[residentId];
+  delete ui.revealedIds[residentId];
+  idStore.deleted[residentId] = new Date().toISOString();
+  writeIdStore();
+  if (had) scheduleIdSync();
+}
+function dropIdsFor(residentIds) {
+  (residentIds || []).forEach(function (id) { if (id) removeIdFor(id); });
+}
+function dropAllIds() {
+  Object.keys(idStore.rows).forEach(function (id) { removeIdFor(id); });
+  Object.keys(idStore.dirty).forEach(function (id) { delete idStore.dirty[id]; });
+  writeIdStore();
+}
+/* Any number whose resident is gone is removed from the phone and the cloud. */
+function pruneOrphanIds() {
+  var live = {};
+  (db.residents || []).forEach(function (r) { live[r.id] = true; });
+  var gone = Object.keys(idStore.rows).filter(function (id) { return !live[id]; });
+  if (!gone.length) return;
+  gone.forEach(function (id) { removeIdFor(id); });
+  writeIdStore();
+}
+
+/* Old documents carried the number inside the resident: move it out once. */
+function stashLegacyIds(doc) {
+  if (!doc || !Array.isArray(doc.residents)) return;
+  var moved = false;
+  doc.residents.forEach(function (r) {
+    if (!r || !r.id) return;
+    var legacy = typeof r.idNumber === 'string' ? r.idNumber.trim() : '';
+    if (legacy && !idStore.rows[r.id] && !idStore.deleted[r.id]) {
+      // Moved exactly as it was: validating an existing document must never
+      // throw a number away. Validation happens when a number is typed in.
+      idStore.rows[r.id] = {
+        idType: r.idType || 'Other',
+        idNumber: legacy.replace(/\s+/g, ''),
+        updatedAt: new Date().toISOString()
+      };
+      idStore.dirty[r.id] = true;
+      moved = true;
+    }
+    delete r.idNumber;
+  });
+  if (moved) writeIdStore();
+}
+
+/* --- masking -------------------------------------------------------------- */
+/* "XXXX XXXX 1234": the last 4 characters stay, everything else is hidden. */
+function maskIdNumber(value) {
+  var v = String(value == null ? '' : value).replace(/[^0-9A-Za-z]/g, '');
+  if (!v) return '';
+  if (v.length <= 4) return 'XXXX';
+  var tail = v.slice(-4);
+  var head = new Array(v.length - 4 + 1).join('X').replace(/(.{4})(?=.)/g, '$1 ');
+  return head + ' ' + tail;
+}
+
+/* --- Aadhaar (Verhoeff) validation ---------------------------------------- */
+var VERHOEFF_D = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
+  [2, 3, 4, 0, 1, 7, 8, 9, 5, 6], [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
+  [4, 0, 1, 2, 3, 9, 5, 6, 7, 8], [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+  [6, 5, 9, 8, 7, 1, 0, 4, 3, 2], [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
+  [8, 7, 6, 5, 9, 3, 2, 1, 0, 4], [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+];
+var VERHOEFF_P = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
+  [5, 8, 0, 3, 7, 9, 6, 1, 4, 2], [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
+  [9, 4, 5, 3, 1, 2, 6, 8, 7, 0], [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+  [2, 7, 9, 3, 8, 0, 6, 4, 1, 5], [7, 0, 4, 6, 9, 1, 3, 2, 5, 8]
+];
+function verhoeffValid(number) {
+  var digits = String(number == null ? '' : number).replace(/\D/g, '').split('').reverse();
+  if (!digits.length) return false;
+  var c = 0;
+  for (var i = 0; i < digits.length; i++) {
+    c = VERHOEFF_D[c][VERHOEFF_P[i % 8][Number(digits[i])]];
+  }
+  return c === 0;
+}
+
+/* Returns { ok, value } where value is what gets stored (Aadhaar: no spaces). */
+function validateIdNumber(type, value) {
+  var raw = String(value == null ? '' : value).trim();
+  if (!raw) return { ok: true, value: '' };
+  var clean = raw.replace(/\s+/g, '');
+  if (type === 'Aadhaar') {
+    if (!/^\d{12}$/.test(clean)) return { ok: false, value: clean, error: 'Aadhaar needs exactly 12 digits' };
+    if (!verhoeffValid(clean)) return { ok: false, value: clean, error: 'That Aadhaar number is not valid. Check the digits.' };
+    return { ok: true, value: clean };
+  }
+  if (!/^[A-Za-z0-9]{4,20}$/.test(clean)) {
+    return { ok: false, value: clean, error: 'Use 4 to 20 letters or digits' };
+  }
+  return { ok: true, value: clean };
+}
+
+/* --- showing the number --------------------------------------------------- */
+function isIdRevealed(residentId) {
+  var until = ui.revealedIds[residentId];
+  return !!(until && until > Date.now());
+}
+function hideIdNumber(residentId) {
+  delete ui.revealedIds[residentId];
+  render();
+}
+/* The PIN is asked every time, and the number hides itself after 30 seconds. */
+function revealIdNumber(residentId) {
+  if (!residentId) return;
+  requestPinVerify(function () {
+    var until = Date.now() + ID_REVEAL_MS;
+    ui.revealedIds[residentId] = until;
+    render();
+    setTimeout(function () {
+      // a later reveal has its own timer; never cut that one short
+      if (ui.revealedIds[residentId] !== until) return;
+      delete ui.revealedIds[residentId];
+      render();
+    }, ID_REVEAL_MS + 60);
+  });
+}
+function hideAllRevealedIds() { ui.revealedIds = {}; }
+
+/* --- syncing the numbers -------------------------------------------------- */
+function idsPending() {
+  return Object.keys(idStore.dirty).length > 0 || Object.keys(idStore.deleted).length > 0;
+}
+function scheduleIdSync() {
+  if (!cloud.config.configured) return;
+  if (!session || !session.cloud) return;
+  if (conflictState.visible) return;
+  if (!isOnline()) { setSyncStatus('offline'); return; }
+  cloud.idPending = true;
+  setSyncStatus('saving');
+  if (cloud.idTimer) clearTimeout(cloud.idTimer);
+  cloud.idTimer = setTimeout(function () { cloud.idTimer = null; idSyncNow(); }, SYNC_DEBOUNCE_MS);
+}
+
+/* Pushes queued numbers and deletions. Last write wins per resident. */
+async function idSyncNow() {
+  if (!cloudReady()) return false;
+  if (cloud.idBusy) return false;
+  if (!isOnline()) { setSyncStatus('offline'); return false; }
+  var rows = Object.keys(idStore.dirty).filter(function (id) { return !!idStore.rows[id]; });
+  var gone = Object.keys(idStore.deleted);
+  if (!rows.length && !gone.length) { cloud.idPending = false; return true; }
+  var client = cloudClient();
+  if (!client) return false;
+  cloud.idBusy = true;
+  setSyncStatus('saving');
+  try {
+    for (var i = 0; i < rows.length; i++) {
+      var rid = rows[i];
+      var rec = idStore.rows[rid];
+      var res = await client.from(ID_TABLE).upsert({
+        user_id: session.user.id,
+        resident_id: rid,
+        id_type: rec.idType || 'Other',
+        id_number: rec.idNumber,
+        updated_at: rec.updatedAt || new Date().toISOString()
+      }, { onConflict: 'user_id,resident_id' });
+      if (res && res.error) throw res.error;
+      delete idStore.dirty[rid];
+    }
+    for (var j = 0; j < gone.length; j++) {
+      var drid = gone[j];
+      var del = await client.from(ID_TABLE).delete()
+        .eq('user_id', session.user.id).eq('resident_id', drid);
+      if (del && del.error) throw del.error;
+      delete idStore.deleted[drid];
+    }
+    writeIdStore();
+    cloud.idBusy = false;
+    cloud.idPending = false;
+    setSyncStatus('synced');
+    return true;
+  } catch (e) {
+    cloud.idBusy = false;
+    writeIdStore();
+    syncFailed(e);
+    return false;
+  }
+}
+
+/* Reads the cloud rows into this phone. Returns true when something changed. */
+async function pullIds() {
+  if (!cloudReady()) return false;
+  var client = cloudClient();
+  if (!client) return false;
+  var res;
+  try {
+    res = await client.from(ID_TABLE).select('resident_id,id_type,id_number,updated_at')
+      .eq('user_id', session.user.id);
+  } catch (e) {
+    return false;
+  }
+  if (res && res.error) return false;
+  var rows = res && Array.isArray(res.data) ? res.data : [];
+  var live = {};
+  (db.residents || []).forEach(function (r) { live[r.id] = true; });
+  var changed = false;
+  rows.forEach(function (row) {
+    if (!row || !row.resident_id || !live[row.resident_id]) return;
+    if (!row.id_number) return;
+    var local = idStore.rows[row.resident_id];
+    if (local && idStore.dirty[row.resident_id]) return;         // this phone wins
+    var localAt = local && local.updatedAt ? Date.parse(local.updatedAt) : 0;
+    var remoteAt = row.updated_at ? Date.parse(row.updated_at) : 0;
+    if (local && localAt > remoteAt) return;                     // this phone wins
+    idStore.rows[row.resident_id] = {
+      idType: row.id_type || 'Other',
+      idNumber: String(row.id_number),
+      updatedAt: row.updated_at || new Date().toISOString()
+    };
+    delete idStore.dirty[row.resident_id];
+    delete idStore.deleted[row.resident_id];
+    changed = true;
+  });
+  if (changed) writeIdStore();
+  return changed;
+}
+/* Puts the numbers from a backup file back. The current set is replaced. */
+function restoreIdNumbers(list) {
+  dropAllIds();
+  var live = {};
+  (db.residents || []).forEach(function (r) { live[r.id] = true; });
+  var restored = 0;
+  (Array.isArray(list) ? list : []).forEach(function (item) {
+    if (!item || !item.residentId || !live[item.residentId]) return;
+    var number = String(item.idNumber == null ? '' : item.idNumber).replace(/\s+/g, '').trim();
+    if (!number) return;
+    idStore.rows[item.residentId] = {
+      idType: item.idType || 'Other',
+      idNumber: number,
+      updatedAt: new Date().toISOString()
+    };
+    idStore.dirty[item.residentId] = true;
+    delete idStore.deleted[item.residentId];
+    restored += 1;
+  });
+  writeIdStore();
+  return restored;
+}
+
+function afterIdsPulled(changed) { if (changed) render(); }
+
+/* --- the ID fields in the resident wizard --------------------------------- */
+function idHintFor(type) {
+  if (type === 'Aadhaar') return '12 digits. Spaces are fine, they are removed.';
+  return '4 to 20 letters or digits.';
+}
+function idFieldsHTML(data, isAdd) {
+  var type = data.idType || 'Aadhaar';
+  return '<div class="form-grid">' +
+    '<div class="field"><label>ID proof</label><select class="select" name="idType" data-act-change="wiz-id-type">' +
+    ID_TYPES.map(function (t) { return '<option' + (type === t ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="field"><label>ID number</label>' +
+    '<input class="input" name="idNumber" autocomplete="off" placeholder="' + (type === 'Aadhaar' ? '12 digit number' : 'Number') + '" value="' + attr(data.idNumber) + '"' +
+    (type === 'Aadhaar' ? ' inputmode="numeric"' : '') + '><div class="field-error"></div></div>' +
+    '</div>' +
+    '<div class="field-hint" id="idHint">' + esc(idHintFor(type)) + ' Kept apart from your hostel data and shown masked.</div>' +
+    (isAdd
+      ? '<label class="auth-check" style="color:var(--ink)"><input type="checkbox" name="idConsent"' + (data.idConsent ? ' checked' : '') + '>' +
+        '<span style="color:var(--ink)">Resident agreed to keep their ID number in this app.</span></label>' +
+        '<div class="field-error" id="idConsentError"></div>'
+      : '');
+}
+
+/* ===========================================================================
+   25b. ACCOUNT (email + password), 4-DIGIT PIN LOCK AND CLOUD SYNC
+   ---------------------------------------------------------------------------
+   Cloud sync is optional and lives in config.js:
+
+     window.APP_CONFIG = {
+       SUPABASE_URL: 'PASTE_PROJECT_URL',
+       SUPABASE_KEY: 'PASTE_PUBLISHABLE_KEY'
+     };
+
+   While those placeholders are unchanged the app runs exactly as before: the
+   account and every record stay in localStorage on this phone and everything
+   works with no internet at all.
+
+   To turn sync on: create a Supabase project, run supabase/schema.sql in the
+   SQL editor, create the owner's user in Authentication > Users (turn
+   sign-ups off), then paste the Project URL and the publishable (anon) key
+   into config.js. The key is public by design - row level security in
+   schema.sql is what keeps each hostel's rows private to its user.
+
+   localStore is the working copy and always the source of truth on this
+   phone. The cloud copy is versioned: every upload is
+   `update ... where version = <last known>` so a copy written by another
+   phone is never overwritten without asking the owner first.
    =========================================================================== */
 var SESSION_KEY = 'hostelManager.session';
 var ACCOUNT_KEY = 'hostelManager.account';
 var CACHE_OWNER_KEY = 'hostelManager.owner';
-var CONFIG_KEY = 'hostelManager.config';
-
-function readCloudConfig() {
-  var cfg = {
-    url: String(SUPABASE_URL || '').trim(),
-    key: String(SUPABASE_ANON_KEY || '').trim(),
-    table: String(SUPABASE_TABLE || 'hostel_data').trim() || 'hostel_data',
-    domain: 'hostel.local'
-  };
-  var ext = null;
-  try { if (typeof window !== 'undefined' && window.HOSTEL_CONFIG) ext = window.HOSTEL_CONFIG; } catch (e) {}
-  if (!ext) { try { var raw = localStorage.getItem(CONFIG_KEY); if (raw) ext = JSON.parse(raw); } catch (e) {} }
-  // An explicit opt-out wins over the keys above (used by the tests and by
-  // anyone who wants a phone-only install of a build that ships with keys).
-  if (ext && typeof ext === 'object' && (ext.cloud === false || ext.disable === true)) {
-    cfg.url = ''; cfg.key = '';
-  }
-  if (!ext) {
-    try {
-      var mu = document.querySelector('meta[name="hostel-supabase-url"]');
-      var mk = document.querySelector('meta[name="hostel-supabase-key"]');
-      if ((mu && mu.content) || (mk && mk.content)) {
-        ext = { supabaseUrl: mu ? mu.content : '', supabaseAnonKey: mk ? mk.content : '' };
-      }
-    } catch (e) {}
-  }
-  if (ext && typeof ext === 'object' && !(ext.cloud === false || ext.disable === true)) {
-    cfg.url = String(ext.supabaseUrl || ext.SUPABASE_URL || ext.url || cfg.url || '').trim();
-    cfg.key = String(ext.supabaseAnonKey || ext.SUPABASE_ANON_KEY || ext.key || cfg.key || '').trim();
-    if (ext.table) cfg.table = String(ext.table).trim();
-    if (ext.usernameDomain) cfg.domain = String(ext.usernameDomain).replace(/^@/, '').trim();
-  }
-  cfg.url = cfg.url.replace(/\/+$/, '');
-  cfg.configured = !!(cfg.url && cfg.key);
-  return cfg;
-}
-
-var cloud = {
-  config: readCloudConfig(), status: 'local', error: '', at: 0,
-  timer: null, pending: false, applying: false, lastPullAt: 0
-};
-var session = null;
-var authState = { visible: false, mode: 'login', error: '', notice: '', busy: false, username: '' };
+var PIN_KEY = 'hostelManager.pin';
+var PIN_TTL_MS = 2 * 60 * 1000;
+var SYNC_DEBOUNCE_MS = 2000;
+var CLOUD_TABLE = 'app_state';
 
 /* --- tiny storage helpers (every access in try/catch) --------------------- */
 function safeGet(store, key) {
   try { return window[store] ? window[store].getItem(key) : null; } catch (e) { return null; }
 }
 function safeSet(store, key, value) {
-  try { if (window[store]) { window[store].setItem(key, value); return true; } } catch (e) { console.warn('Could not save ' + key, e); }
-  return false;
+  try { window[store].setItem(key, value); return true; } catch (e) { return false; }
 }
 function safeRemove(store, key) {
-  try { if (window[store]) window[store].removeItem(key); } catch (e) {}
+  try { if (window[store]) window[store].removeItem(key); return true; } catch (e) { return false; }
 }
 
+/* --- config.js ----------------------------------------------------------- */
+function isPlaceholderValue(v) {
+  var s = String(v || '').trim();
+  return !s || /PASTE/i.test(s) || /^YOUR[-_]/i.test(s) || s.indexOf('<') === 0;
+}
+function readCloudConfig() {
+  var raw = null;
+  try { raw = (typeof window !== 'undefined' && window.APP_CONFIG) || null; } catch (e) { raw = null; }
+  var url = String((raw && raw.SUPABASE_URL) || '').trim().replace(/\/+$/, '');
+  var key = String((raw && raw.SUPABASE_KEY) || '').trim();
+  var configured = !isPlaceholderValue(url) && !isPlaceholderValue(key) && /^https?:\/\//i.test(url);
+  return { url: url, key: key, configured: configured, table: CLOUD_TABLE };
+}
+
+/* --- live state ---------------------------------------------------------- */
+var cloud = {
+  config: readCloudConfig(),
+  client: null,
+  status: 'local',        // local | idle | saving | synced | offline | error | conflict
+  error: '',
+  version: 0,             // last cloud version this phone has seen
+  at: null,               // its updated_at
+  known: false,
+  timer: null,
+  pending: false,
+  busy: false,
+  applying: false
+};
+var session = null;
+var authState = { visible: false, mode: 'login', error: '', notice: '', busy: false, username: '' };
+var conflictState = { visible: false, row: null, cloudNewer: true, busy: false, error: '' };
+
+/* --- session / account records ------------------------------------------- */
 function readSession() {
-  var raw = safeGet('sessionStorage', SESSION_KEY) || safeGet('localStorage', SESSION_KEY);
-  if (!raw) return null;
   try {
+    var raw = safeGet('localStorage', SESSION_KEY);
+    if (!raw) return null;
     var s = JSON.parse(raw);
-    if (!s || !s.user) return null;
-    return s;
+    return s && s.user ? s : null;
   } catch (e) { return null; }
 }
-function writeSession(s) {
-  var raw = JSON.stringify(s);
-  if (s.stay) {
-    safeSet('localStorage', SESSION_KEY, raw);
-    safeRemove('sessionStorage', SESSION_KEY);
-  } else {
-    safeSet('sessionStorage', SESSION_KEY, raw);
-    safeRemove('localStorage', SESSION_KEY);
-  }
-}
-function forgetSession() {
-  session = null;
-  safeRemove('localStorage', SESSION_KEY);
-  safeRemove('sessionStorage', SESSION_KEY);
-}
+function writeSession(s) { return safeSet('localStorage', SESSION_KEY, JSON.stringify(s)); }
+function forgetSession() { safeRemove('localStorage', SESSION_KEY); }
+
 function readAccount() {
-  var raw = safeGet('localStorage', ACCOUNT_KEY);
-  if (!raw) return null;
   try {
+    var raw = safeGet('localStorage', ACCOUNT_KEY);
+    if (!raw) return null;
     var rec = JSON.parse(raw);
-    return rec && rec.hash && rec.salt ? rec : null;
+    return rec && rec.username && rec.hash && rec.salt ? rec : null;
   } catch (e) { return null; }
 }
 function writeAccount(rec) { return safeSet('localStorage', ACCOUNT_KEY, JSON.stringify(rec)); }
 function clearAccount() { safeRemove('localStorage', ACCOUNT_KEY); }
 function readCacheOwner() { return safeGet('localStorage', CACHE_OWNER_KEY) || ''; }
 function writeCacheOwner(id) { if (id) safeSet('localStorage', CACHE_OWNER_KEY, id); }
+function clearCacheOwner() { safeRemove('localStorage', CACHE_OWNER_KEY); }
 
-/* --- password hashing for the local (offline) account --------------------- */
+/* --- password / PIN hashing ---------------------------------------------- */
 function randomSalt() {
   var out = '';
   try {
@@ -4462,208 +4893,116 @@ async function verifyLocalPassword(password, rec) {
   return false;
 }
 
-/* --- HTTP --------------------------------------------------------------- */
-function httpJSON(url, opts, ms) {
-  var options = Object.assign({ headers: {} }, opts || {});
-  var fetcher = (typeof window.fetch === 'function') ? window.fetch.bind(window) : null;
-  if (!fetcher) return Promise.reject(new Error('This browser cannot reach the internet'));
-  return new Promise(function (resolve, reject) {
-    var timer = null, controller = null, done = false;
-    if (typeof AbortController === 'function') controller = new AbortController();
-    if (controller && !options.signal) options.signal = controller.signal;
-    if (ms) {
-      timer = setTimeout(function () {
-        if (done) return;
-        done = true;
-        if (controller) { try { controller.abort(); } catch (e) {} }
-        var err = new Error('The internet is slow. Saved locally.');
-        err.timeout = true;
-        reject(err);
-      }, ms);
-    }
-    function finish(fn, value) {
-      if (done) return;
-      done = true;
-      if (timer) clearTimeout(timer);
-      fn(value);
-    }
-    fetcher(url, options).then(function (res) {
-      return res.text().then(function (body) {
-        var data = null;
-        try { data = body ? JSON.parse(body) : null; } catch (e) { data = null; }
-        if (!res.ok) {
-          var msg = (data && (data.msg || data.error_description || data.error || data.message || data.hint || data.details)) || ('Request failed (' + res.status + ')');
-          var err = new Error(msg);
-          err.status = res.status;
-          finish(reject, err);
-          return null;
-        }
-        finish(resolve, data);
-        return null;
-      });
-    }, function (err) {
-      var e2 = new Error('Cannot reach the cloud. Saved locally.');
-      e2.offline = true;
-      e2.cause = err;
-      finish(reject, e2);
-    }).catch(function (err) { finish(reject, err); });
-  });
-}
-function cloudHeaders(extra) {
-  return Object.assign({
-    apikey: cloud.config.key,
-    Authorization: 'Bearer ' + ((session && session.access_token) || cloud.config.key),
-    'Content-Type': 'application/json'
-  }, extra || {});
-}
-function cloudEmailFor(username) {
-  var u = String(username || '').trim().toLowerCase();
-  if (u.indexOf('@') === -1) u += '@' + (cloud.config.domain || 'hostel.local');
-  return u;
-}
-function shortUsername(email) {
-  var e = String(email || '');
-  return e.replace(new RegExp('@' + (cloud.config.domain || 'hostel.local').replace(/\./g, '\\.') + '$', 'i'), '') || e;
-}
-function sessionName() {
-  if (!session) return 'Not signed in';
-  return session.user.username || session.user.email || 'Owner';
-}
+/* --- the PIN (a quick lock on top of the account) ------------------------ */
+var pinState = {
+  record: null, mode: 'none', entry: '', first: '', error: '', showHelp: false,
+  busy: false, attempts: 0, blockedUntil: 0, shake: false, afterVerify: null,
+  resetOnRestore: false
+};
+var lockHiddenAt = 0;
 
-/* --- sign in / sign up --------------------------------------------------- */
-function sessionFromAuth(json) {
-  var user = (json && json.user) || {};
-  return {
-    v: 1,
-    cloud: true,
-    access_token: json.access_token || '',
-    refresh_token: json.refresh_token || '',
-    expires_at: Date.now() + (num(json.expires_in) || 3600) * 1000,
-    user: { id: user.id || '', email: user.email || '', username: shortUsername(user.email || '') }
-  };
-}
-async function localSignup(username, password) {
-  if (readAccount()) throw new Error('This device already has an account. Sign in instead.');
-  var salt = randomSalt();
-  var made = await hashSecret(password, salt);
-  var rec = { v: 1, username: String(username).toLowerCase(), algo: made.algo, salt: salt, hash: made.hash, at: new Date().toISOString() };
-  if (!writeAccount(rec)) throw new Error('This browser could not save the account. Check storage settings.');
-  return { v: 1, cloud: false, stay: true, user: { id: 'local', username: rec.username, email: '' } };
-}
-async function localSignin(username, password) {
-  var rec = readAccount();
-  if (!rec) throw new Error('No account on this device yet. Create one below.');
-  if (rec.username && rec.username !== String(username).trim().toLowerCase()) throw new Error('That is not the account on this device.');
-  var good = await verifyLocalPassword(password, rec);
-  if (!good) throw new Error('Incorrect password. Try again.');
-  return { v: 1, cloud: false, stay: true, user: { id: 'local', username: rec.username, email: '' } };
-}
-async function signInWithPassword(username, password, stay) {
-  if (!cloud.config.configured) {
-    var local = await localSignin(username, password);
-    local.stay = !!stay;
-    return local;
-  }
-  var json = await httpJSON(cloud.config.url + '/auth/v1/token?grant_type=password', {
-    method: 'POST',
-    headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: cloudEmailFor(username), password: String(password) })
-  }, 20000);
-  if (!json || !json.access_token) throw new Error('Could not sign in. Check your username and password.');
-  var s = sessionFromAuth(json);
-  s.stay = !!stay;
-  return s;
-}
-async function signUpWithPassword(username, password, stay) {
-  if (!cloud.config.configured) {
-    var local = await localSignup(username, password);
-    local.stay = !!stay;
-    return local;
-  }
-  var json = await httpJSON(cloud.config.url + '/auth/v1/signup', {
-    method: 'POST',
-    headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: cloudEmailFor(username), password: String(password) })
-  }, 20000);
-  if (json && json.access_token) {
-    var s = sessionFromAuth(json);
-    s.stay = !!stay;
-    return s;
-  }
-  var pending = new Error('Account created. Check your email to confirm it, then sign in.');
-  pending.needsConfirm = true;
-  throw pending;
-}
-async function refreshSessionToken() {
-  if (!session || !session.cloud || !session.refresh_token) return false;
+function readPinRecord() {
   try {
-    var json = await httpJSON(cloud.config.url + '/auth/v1/token?grant_type=refresh_token', {
-      method: 'POST',
-      headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: session.refresh_token })
-    }, 15000);
-    if (json && json.access_token) {
-      var fresh = sessionFromAuth(json);
-      fresh.stay = !!session.stay;
-      session = fresh;
-      writeSession(session);
-      return true;
-    }
-  } catch (e) { cloud.error = e.message; }
+    var raw = safeGet('localStorage', PIN_KEY);
+    if (!raw) return null;
+    var rec = JSON.parse(raw);
+    return rec && rec.hash && rec.salt ? rec : null;
+  } catch (e) { return null; }
+}
+function writePinRecord(rec) {
+  var saved = safeSet('localStorage', PIN_KEY, JSON.stringify(rec));
+  if (!saved) console.warn('The PIN could not be saved on this phone.');
+  return saved;
+}
+function clearPinRecord() {
+  safeRemove('localStorage', PIN_KEY);
+  pinState.record = null;
+}
+async function setPinRecord(value) {
+  var salt = randomSalt();
+  var made = await hashSecret(value, salt);
+  var rec = { v: 1, algo: made.algo, salt: salt, hash: made.hash, at: new Date().toISOString() };
+  if (!writePinRecord(rec)) return false;
+  pinState.record = rec;
+  return true;
+}
+async function checkPin(value) {
+  var rec = pinState.record || readPinRecord();
+  if (!rec) return true;
+  var first = await hashSecret(value, rec.salt, rec.algo);
+  if (first.hash === rec.hash) return true;
+  if (first.algo !== rec.algo) {
+    var fb = await hashSecret(value, rec.salt, 'xfnv');
+    if (fb.hash === rec.hash) return true;
+  }
   return false;
 }
-async function ensureToken() {
-  if (!session || !session.cloud) return false;
-  if (!session.access_token) return false;
-  if (!session.expires_at || session.expires_at - Date.now() > 60000) return true;
-  return refreshSessionToken();
-}
 
-/* --- cloud data ---------------------------------------------------------- */
-function cloudRowUrl() {
-  return cloud.config.url + '/rest/v1/' + encodeURIComponent(cloud.config.table) +
-    '?user_id=eq.' + encodeURIComponent(session.user.id) + '&select=data,updated_at';
+/* --- Supabase client (vendored in vendor/supabase.js) -------------------- */
+function supabaseLib() {
+  try { return (typeof window !== 'undefined' && window.supabase) || null; } catch (e) { return null; }
 }
-async function cloudGet() {
-  await ensureToken();
-  var rows = await httpJSON(cloudRowUrl(), { method: 'GET', headers: cloudHeaders() }, 15000);
-  if (!Array.isArray(rows) || !rows.length) return null;
-  return rows[0];
+function cloudClient() {
+  if (!cloud.config.configured) return null;
+  if (cloud.client) return cloud.client;
+  var lib = supabaseLib();
+  if (!lib || typeof lib.createClient !== 'function') return null;
+  try {
+    cloud.client = lib.createClient(cloud.config.url, cloud.config.key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: 'hostelManager.auth'
+      }
+    });
+  } catch (e) {
+    cloud.client = null;
+  }
+  return cloud.client;
 }
-async function cloudPut() {
-  await ensureToken();
-  var url = cloud.config.url + '/rest/v1/' + encodeURIComponent(cloud.config.table) + '?on_conflict=user_id';
-  await httpJSON(url, {
-    method: 'POST',
-    headers: cloudHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify([{ user_id: session.user.id, data: db, updated_at: new Date().toISOString() }])
-  }, 20000);
-  return true;
+function cloudReady() {
+  return !!(cloud.config.configured && cloudClient() && session && session.cloud && session.user && session.user.id);
+}
+function cloudTable() { return cloud.config.table || CLOUD_TABLE; }
+
+/* --- sync status --------------------------------------------------------- */
+function isOnline() {
+  try { return navigator.onLine !== false; } catch (e) { return true; }
+}
+function numVersion(v) {
+  var n = Number(v);
+  return isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+function localVersion() {
+  return db && db.meta ? numVersion(db.meta.cloudVersion) : 0;
 }
 function setSyncStatus(status, err) {
   cloud.status = status;
   cloud.error = err || '';
-  cloud.at = Date.now();
   refreshSyncUi();
+  refreshSyncChip();
 }
 function syncStatusText() {
   if (!cloud.config.configured) {
-    return { label: 'Cloud sync off', hint: 'Saved on this phone only \u00B7 add Supabase keys to sync', tone: 'neutral' };
+    return { label: 'Saved on this phone', hint: 'Add your Supabase keys in config.js to sync', tone: 'neutral' };
   }
   if (!session || !session.cloud) {
-    return { label: 'Local account', hint: 'Data stays on this phone \u00B7 sign in with cloud to sync', tone: 'neutral' };
+    return { label: 'Local account', hint: 'Data stays on this phone · sign in with cloud to sync', tone: 'neutral' };
   }
-  if (cloud.status === 'saving') return { label: 'Syncing\u2026', hint: 'Sending your latest changes', tone: 'neutral' };
-  if (cloud.status === 'offline') return { label: 'Offline \u2013 saved locally', hint: 'Will sync when the internet comes back', tone: 'warn' };
-  if (cloud.status === 'error') return { label: 'Not synced \u2013 saved locally', hint: (cloud.error || 'Cloud sync failed') + '', tone: 'warn' };
-  if (cloud.status === 'synced') return { label: 'Synced', hint: 'All changes saved to the cloud', tone: 'good' };
-  return { label: 'Cloud sync ready', hint: 'Changes sync automatically', tone: 'neutral' };
+  if (cloud.status === 'saving') return { label: 'Saving…', hint: 'Sending your latest changes to the cloud', tone: 'neutral' };
+  if (cloud.status === 'offline') return { label: 'Offline, will sync', hint: 'Saved on this phone · syncs when the internet comes back', tone: 'warn' };
+  if (cloud.status === 'error') return { label: 'Not synced yet', hint: (cloud.error || 'The cloud could not be reached') + ' · saved on this phone', tone: 'warn' };
+  if (cloud.status === 'conflict') return { label: 'Two copies need a choice', hint: 'Open the sync screen and pick one', tone: 'warn' };
+  if (cloud.status === 'synced') return { label: 'Saved to cloud', hint: 'All changes are in the cloud and on this phone', tone: 'good' };
+  return { label: 'Not synced yet', hint: 'Your data is on this phone · waiting for the cloud', tone: 'neutral' };
 }
 function syncStatusHTML() {
   var st = syncStatusText();
   var color = st.tone === 'good' ? 'var(--green)' : st.tone === 'warn' ? '#B45309' : '#64748B';
   var bg = st.tone === 'good' ? 'var(--green-bg)' : st.tone === 'warn' ? '#FFF7ED' : '#F1F5F9';
-  return '<span class="si" style="background:' + bg + ';color:' + color + '">' + icon(st.tone === 'good' ? 'checkCircle' : st.tone === 'warn' ? 'alert' : 'cloud', 18) + '</span>' +
+  return '<span class="si" style="background:' + bg + ';color:' + color + '">' +
+    icon(st.tone === 'good' ? 'checkCircle' : st.tone === 'warn' ? 'alert' : 'cloud', 18) + '</span>' +
     '<span class="grow"><span class="st">' + esc(st.label) + '</span><span class="ss">' + esc(st.hint) + '</span></span>' +
     (st.tone === 'good' ? '<span class="badge paid">' + icon('check', 12) + '</span>' : '');
 }
@@ -4671,72 +5010,607 @@ function refreshSyncUi() {
   var node = document.getElementById('syncStatus');
   if (node) node.innerHTML = syncStatusHTML();
 }
-function isOnline() {
-  try { return navigator.onLine !== false; } catch (e) { return true; }
+function syncChipText() {
+  if (!cloud.config.configured || !session || !session.cloud) return null;
+  if (cloud.status === 'synced') return { label: 'Saved to cloud', tone: 'good' };
+  if (cloud.status === 'saving') return { label: 'Saving…', tone: 'busy' };
+  if (cloud.status === 'offline') return { label: 'Offline, will sync', tone: 'warn' };
+  if (cloud.status === 'conflict') return { label: 'Check sync', tone: 'warn' };
+  if (cloud.status === 'error') return { label: 'Not synced yet', tone: 'warn' };
+  return { label: 'Not synced yet', tone: 'plain' };
 }
-function scheduleCloudSync() {
-  if (!session || !session.cloud || !cloud.config.configured) return;
-  if (cloud.applying) return;
-  cloud.pending = true;
-  setSyncStatus(isOnline() ? 'saving' : 'offline');
-  if (cloud.timer) clearTimeout(cloud.timer);
-  cloud.timer = setTimeout(function () { cloud.timer = null; syncNow(); }, 1200);
+function syncChipHTML() {
+  var st = syncChipText();
+  if (!st) return '';
+  return '<button class="sync-chip ' + st.tone + '" id="syncChip" data-act="sync-chip" title="' +
+    esc(st.label) + '" aria-label="Cloud sync: ' + esc(st.label) + '"><span class="dot"></span>' +
+    '<span>' + esc(st.label) + '</span></button>';
 }
-async function syncNow(opts) {
-  opts = opts || {};
-  if (!session || !session.cloud || !cloud.config.configured) return false;
-  if (!isOnline()) { setSyncStatus('offline'); return false; }
-  var dirty = !!(cloud.pending || cloud.timer);
-  if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
-  setSyncStatus('saving');
-  try {
-    if (opts.pull && !dirty) {
-      var row = await cloudGet();
-      var remoteAt = row && row.updated_at ? Date.parse(row.updated_at) : 0;
-      var localAt = db.meta && db.meta.syncedAt ? Date.parse(db.meta.syncedAt) : 0;
-      if (row && row.data && row.data.residents && remoteAt > localAt) {
-        applyRemote(row);
-        cloud.pending = false;
-        setSyncStatus('synced');
-        return true;
-      }
-    }
-    await cloudPut();
-    db.meta.syncedAt = new Date().toISOString();
-    saveLocalOnly();
-    cloud.pending = false;
-    setSyncStatus('synced');
-    return true;
-  } catch (e) {
-    cloud.pending = true;
-    setSyncStatus(e.offline || e.timeout || !isOnline() ? 'offline' : 'error', e.message);
-    return false;
-  }
+function refreshSyncChip() {
+  var node = document.getElementById('syncChip');
+  if (!node || !node.parentNode) return;
+  var wrap = document.createElement('span');
+  wrap.innerHTML = syncChipHTML();
+  var next = wrap.firstChild;
+  if (next && next.id === 'syncChip' && next.tagName === 'BUTTON') node.parentNode.replaceChild(next, node);
+  else node.parentNode.removeChild(node);
 }
-function applyRemote(row) {
-  cloud.applying = true;
-  try {
-    db = upgrade(row.data);
-    ensureBedsForRooms(db);
-    reconcileBeds();
-    ensureDues();
-    db.meta.syncedAt = row.updated_at || new Date().toISOString();
-    saveLocalOnly();
-    ui.prop = 'all';
-    ui.payMonth = thisMonth();
-    ui.tab = 'home';
-    ui.view = { name: 'home', params: {} };
-    applyUiPrefs();
-    render();
-  } finally {
-    cloud.applying = false;
-  }
-}
+
+/* writes the current database without asking the cloud anything */
 function saveLocalOnly() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(db));
     return true;
-  } catch (e) { console.warn('Save failed', e); return false; }
+  } catch (e) {
+    console.warn('Save failed', e);
+    return false;
+  }
+}
+
+/* --- talking to the cloud ------------------------------------------------ */
+async function fetchCloudRow() {
+  var client = cloudClient();
+  if (!client) throw new Error('Cloud sign-in is not available on this browser');
+  var res = await client.from(cloudTable())
+    .select('data,version,updated_at')
+    .eq('user_id', session.user.id)
+    .limit(1);
+  if (res && res.error) throw res.error;
+  var rows = res && Array.isArray(res.data) ? res.data : [];
+  return rows.length ? rows[0] : null;
+}
+
+/* Uploads the local copy as version base+1. Returns 'ok' or 'conflict'. */
+async function uploadLocalCopy(base) {
+  var client = cloudClient();
+  var stamp = new Date().toISOString();
+  if (db.meta) db.meta.updatedAt = stamp;
+  var payload = { data: db, version: base + 1, updated_at: stamp };
+  var res;
+  if (base === 0) {
+    var row = { user_id: session.user.id, data: payload.data, version: payload.version, updated_at: payload.updated_at };
+    res = await client.from(cloudTable()).insert(row).select('version');
+  } else {
+    res = await client.from(cloudTable()).update(payload)
+      .eq('user_id', session.user.id).eq('version', base).select('version');
+  }
+  if (res && res.error) {
+    var msg = String(res.error.code || '') + ' ' + String(res.error.message || '');
+    if (base === 0 && /23505|duplicate|conflict/i.test(msg)) return 'conflict';
+    throw res.error;
+  }
+  var rows = res && Array.isArray(res.data) ? res.data : [];
+  if (base > 0 && !rows.length) return 'conflict';
+  cloud.known = true;
+  cloud.version = base + 1;
+  cloud.at = stamp;
+  if (db.meta) { db.meta.cloudVersion = base + 1; db.meta.cloudAt = stamp; }
+  saveLocalOnly();
+  return 'ok';
+}
+
+function syncFailed(e) {
+  cloud.pending = true;
+  var msg = String((e && e.message) || '');
+  var offline = !isOnline() || !!(e && (e.offline || e.timeout || e.name === 'AuthRetryableFetchError')) ||
+    /network|fetch|offline|internet|failed to/i.test(msg);
+  setSyncStatus(offline ? 'offline' : 'error', msg);
+  return offline;
+}
+
+function scheduleCloudSync() {
+  if (!cloud.config.configured) return;
+  if (cloud.applying) return;
+  if (!hasCloudSession()) return;
+  if (conflictState.visible) return;
+  cloud.pending = true;
+  setSyncStatus(isOnline() ? 'saving' : 'offline');
+  if (cloud.timer) clearTimeout(cloud.timer);
+  cloud.timer = setTimeout(function () { cloud.timer = null; syncNow(); }, SYNC_DEBOUNCE_MS);
+}
+function hasCloudSession() { return !!(session && session.cloud); }
+
+async function syncNow(opts) {
+  opts = opts || {};
+  if (!cloudReady()) return false;
+  if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
+  if (conflictState.visible) return false;
+  if (!isOnline()) { cloud.pending = true; setSyncStatus('offline'); return false; }
+  if (cloud.busy) { cloud.pending = true; return false; }
+  if (opts.pull) return cloudPullOnOpen();
+  cloud.busy = true;
+  setSyncStatus('saving');
+  try {
+    var out = await uploadLocalCopy(localVersion());
+    cloud.busy = false;
+    if (out === 'conflict') { await openConflictForLatest(); return false; }
+    cloud.pending = false;
+    await idSyncNow();
+    setSyncStatus('synced');
+    return true;
+  } catch (e) {
+    cloud.busy = false;
+    syncFailed(e);
+    return false;
+  }
+}
+
+/* Opens the app copy on this phone and compares it with the cloud copy. */
+async function cloudPullOnOpen() {
+  var okDoc = await cloudPullDocument();
+  if (okDoc) {
+    // Anything this phone has queued (including numbers moved out of an older
+    // document) goes up first, then whatever the cloud knows comes down.
+    if (idsPending()) await idSyncNow();
+    var changed = await pullIds();
+    afterIdsPulled(changed);
+  }
+  return okDoc;
+}
+async function cloudPullDocument() {
+  if (!cloudReady()) return false;
+  if (conflictState.visible || cloud.busy) return false;
+  if (cloud.pending) return syncNow();
+  if (!isOnline()) { setSyncStatus('offline'); return false; }
+  cloud.busy = true;
+  setSyncStatus('saving');
+  var row = null;
+  try {
+    row = await fetchCloudRow();
+  } catch (e) {
+    cloud.busy = false;
+    syncFailed(e);
+    return false;
+  }
+  cloud.busy = false;
+  if (!row) {
+    // Nothing in the cloud yet: this phone's copy becomes version 1.
+    try {
+      var made = await uploadLocalCopy(0);
+      if (made === 'conflict') { await openConflictForLatest(); return false; }
+      cloud.pending = false;
+      setSyncStatus('synced');
+      if (!isLocalDataEmpty()) toast('Saved this phone\'s data to the cloud', 'good');
+      return true;
+    } catch (e2) {
+      syncFailed(e2);
+      return false;
+    }
+  }
+  var remoteVersion = numVersion(row.version);
+  cloud.known = true;
+  cloud.version = remoteVersion;
+  cloud.at = row.updated_at || null;
+  var mine = localVersion();
+  if (remoteVersion === mine) {
+    if (db.meta) { db.meta.cloudAt = row.updated_at || null; db.meta.syncedAt = db.meta.cloudAt; }
+    saveLocalOnly();
+    cloud.pending = false;
+    setSyncStatus('synced');
+    return true;
+  }
+  if (mine === 0 && isLocalDataEmpty()) {
+    // This phone has nothing to lose: adopt the cloud copy without asking.
+    adoptRemote(row);
+    cloud.pending = false;
+    setSyncStatus('synced');
+    return true;
+  }
+  openConflict(row, remoteVersion > mine);
+  return false;
+}
+
+async function openConflictForLatest() {
+  var row = null;
+  try { row = await fetchCloudRow(); } catch (e) { syncFailed(e); return; }
+  var remoteVersion = row ? numVersion(row.version) : 0;
+  if (row) {
+    cloud.known = true;
+    cloud.version = remoteVersion;
+    cloud.at = row.updated_at || null;
+  }
+  openConflict(row, remoteVersion > localVersion());
+}
+
+function isLocalDataEmpty() {
+  if (!db) return true;
+  return !(db.residents.length || db.rooms.length || db.payments.length || db.expenses.length);
+}
+
+function adoptRemote(row) {
+  cloud.applying = true;
+  try {
+    db = upgrade(row && row.data ? row.data : {});
+    ensureBedsForRooms(db);
+    reconcileBeds();
+    ensureDues();
+    db.meta.cloudVersion = numVersion(row && row.version);
+    db.meta.cloudAt = (row && row.updated_at) || null;
+    db.meta.syncedAt = db.meta.cloudAt;
+    saveLocalOnly();
+    ui.prop = 'all';
+    ui.payMonth = thisMonth();
+    ui.payFilter = 'all';
+    ui.resFilter = 'active';
+    ui.resQuery = '';
+    ui.tab = 'home';
+    ui.view = { name: 'home', params: {} };
+    applyUiPrefs();
+    render();
+    window.scrollTo(0, 0);
+  } finally {
+    cloud.applying = false;
+  }
+}
+
+/* --- the choice screen (never overwrite silently) ------------------------ */
+function copySummary(data) {
+  var d = data || {};
+  var residents = Array.isArray(d.residents) ? d.residents.length : 0;
+  var rooms = Array.isArray(d.rooms) ? d.rooms.length : 0;
+  return residents + (residents === 1 ? ' resident' : ' residents') + ' \u00B7 ' +
+    rooms + (rooms === 1 ? ' room' : ' rooms');
+}
+function cloudTimeText(iso) {
+  if (!iso) return '';
+  try {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  } catch (e) { return ''; }
+}
+function openConflict(row, cloudNewer) {
+  conflictState.visible = true;
+  conflictState.row = row || null;
+  conflictState.cloudNewer = !!cloudNewer;
+  conflictState.busy = false;
+  conflictState.error = '';
+  cloud.pending = false;
+  setSyncStatus('conflict');
+  renderConflict();
+}
+function hideConflict() {
+  conflictState.visible = false;
+  conflictState.busy = false;
+  conflictState.error = '';
+  renderConflict();
+}
+function conflictHTML() {
+  var newer = conflictState.cloudNewer;
+  var row = conflictState.row;
+  var title = newer ? 'Cloud copy is newer' : 'This phone has newer changes';
+  var sub = newer
+    ? 'Another phone saved changes to this hostel. Pick the copy to keep — nothing is deleted.'
+    : 'This phone has changes that are not in the cloud. Pick the copy to keep.';
+  var cloudLine = row
+    ? 'Version ' + numVersion(row.version) + ' \u00B7 ' + copySummary(row.data) +
+      (cloudTimeText(row.updated_at) ? '<br><span class="muted">saved ' + esc(cloudTimeText(row.updated_at)) + '</span>' : '')
+    : 'No cloud copy yet';
+  var localLine = 'Version ' + localVersion() + ' \u00B7 ' + copySummary(db) +
+    (db.meta && db.meta.cloudAt ? '<br><span class="muted">last synced ' + esc(cloudTimeText(db.meta.cloudAt)) + '</span>' : '');
+  return '<div class="auth-screen">' +
+    '<div class="auth-glow"></div>' +
+    '<div class="auth-inner">' +
+    '<div class="auth-mark">' + icon('cloud', 26) + '</div>' +
+    '<div class="auth-brand">CLOUD SYNC</div>' +
+    '<div class="auth-title">' + esc(title) + '</div>' +
+    '<div class="auth-sub">' + esc(sub) + '</div>' +
+    '<div class="auth-card">' +
+    '<div class="copy-row"><span class="copy-k">Cloud</span><span class="copy-v">' + cloudLine + '</span></div>' +
+    '<div class="copy-row"><span class="copy-k">This phone</span><span class="copy-v">' + localLine + '</span></div>' +
+    '<div class="auth-msg">' + esc(conflictState.error || ' ') + '</div>' +
+    '<button class="btn block" data-act="conflict-cloud"' + (conflictState.busy ? ' disabled' : '') + '>' +
+    icon('cloud', 18) + ' Use cloud copy</button>' +
+    '<button class="btn ghost block" style="margin-top:8px;color:#fff;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)" data-act="conflict-local"' +
+    (conflictState.busy ? ' disabled' : '') + '>' + icon('phone', 18) + ' Keep this phone\'s copy</button>' +
+    '</div>' +
+    '<div class="auth-foot">The copy you pick is saved on this phone and in the cloud. The other one is replaced, so keep a backup if unsure.</div>' +
+    '</div></div>';
+}
+function renderConflict() {
+  var layer = $('#conflictLayer');
+  if (!layer) return;
+  if (!conflictState.visible) {
+    layer.classList.remove('open');
+    layer.innerHTML = '';
+    refreshBodyLock();
+    return;
+  }
+  layer.classList.add('open');
+  layer.innerHTML = conflictHTML();
+  refreshBodyLock();
+}
+
+function useCloudCopy() {
+  if (!conflictState.row) {
+    hideConflict();
+    setSyncStatus('error', 'The cloud copy could not be read');
+    toast('The cloud copy could not be read. Your data is safe on this phone.', 'bad');
+    return;
+  }
+  var row = conflictState.row;
+  cloud.known = true;
+  cloud.version = numVersion(row.version);
+  cloud.at = row.updated_at || null;
+  adoptRemote(row);
+  hideConflict();
+  cloud.pending = false;
+  setSyncStatus('synced');
+  toast('Using the cloud copy', 'good');
+}
+async function keepPhoneCopy() {
+  if (conflictState.busy) return;
+  conflictState.busy = true;
+  conflictState.error = '';
+  renderConflict();
+  try {
+    var row = await fetchCloudRow();
+    var base = row ? numVersion(row.version) : 0;
+    if (row) {
+      cloud.known = true;
+      cloud.version = base;
+      cloud.at = row.updated_at || null;
+    }
+    var out = await uploadLocalCopy(base);
+    conflictState.busy = false;
+    if (out !== 'ok') {
+      conflictState.error = 'The cloud changed again. Please choose once more.';
+      renderConflict();
+      return;
+    }
+    hideConflict();
+    cloud.pending = false;
+    setSyncStatus('synced');
+    toast('This phone\'s copy is now in the cloud', 'good');
+  } catch (e) {
+    conflictState.busy = false;
+    conflictState.error = 'Could not reach the cloud. Your data is safe on this phone.';
+    renderConflict();
+    syncFailed(e);
+  }
+}
+
+/* --- the lock screen ----------------------------------------------------- */
+function lockHelpHTML() {
+  return '<div class="lock-help">' +
+    '<b>Forgot your PIN?</b>' +
+    'Your PIN cannot be shown or recovered. Restore a backup file to open the app.' +
+    '<button class="btn block" data-act="pin-restore">' + icon('upload', 18) + ' Restore a backup</button>' +
+    '<button class="btn ghost block" data-act="pin-help-close">Back to PIN</button>' +
+    '<input type="file" id="lockRestoreFile" accept="application/json,.json" style="display:none">' +
+    '</div>';
+}
+function lockHTML() {
+  var isSetup = pinState.mode === 'setup' || pinState.mode === 'confirm';
+  var title = pinState.mode === 'setup' ? 'Set your 4-digit PIN'
+    : pinState.mode === 'confirm' ? 'Confirm your PIN' : 'Enter your PIN';
+  var sub = pinState.mode === 'setup'
+    ? 'Choose 4 digits to keep your hostel data private.'
+    : pinState.mode === 'confirm'
+      ? 'Type the same 4 digits again.'
+      : pinState.mode === 'verify'
+        ? 'Confirm it is you before going on.'
+        : 'Welcome back' + (db.settings.ownerName ? ', ' + String(db.settings.ownerName).split(' ')[0] : '') + '.';
+  var dots = [0, 1, 2, 3].map(function (i) {
+    return '<span class="' + (i < pinState.entry.length ? 'on' : '') + '"></span>';
+  }).join('');
+  var keys = '';
+  [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(function (n) {
+    keys += '<button class="lock-key" data-act="pin-digit" data-digit="' + n + '" aria-label="' + n + '">' + n + '</button>';
+  });
+  var body = pinState.showHelp ? lockHelpHTML()
+    : '<div class="lock-keypad">' + keys +
+        '<span class="lock-key blank"></span>' +
+        '<button class="lock-key" data-act="pin-digit" data-digit="0" aria-label="0">0</button>' +
+        '<button class="lock-key delete" data-act="pin-delete" aria-label="Delete last digit">' + icon('x', 20) + '</button>' +
+      '</div>' +
+      (pinState.mode === 'locked'
+        ? '<button class="lock-link" data-act="pin-help">Forgot PIN?</button>'
+        : pinState.mode === 'verify'
+          ? '<button class="lock-link" data-act="pin-cancel">Cancel</button>'
+          : '');
+  return '<div class="lock-screen" data-mode="' + pinState.mode + '">' +
+    '<div class="lock-glow"></div>' +
+    '<div class="lock-inner">' +
+    '<div class="lock-mark">' + icon('lock', 26) + '</div>' +
+    '<div class="lock-brand">HOSTEL MANAGER</div>' +
+    '<div class="lock-title">' + title + '</div>' +
+    '<div class="lock-sub">' + esc(sub) + '</div>' +
+    '<div class="pin-dots' + (pinState.error ? ' error' : '') + (pinState.shake ? ' shake' : '') + '">' + dots + '</div>' +
+    '<div class="lock-msg">' + esc(pinState.error || ' ') + '</div>' +
+    body +
+    '</div>' +
+    '<div class="lock-foot">' + (isSetup ? 'You can change this later in Settings.' : 'Your data stays on this phone and in the cloud.') + '</div>' +
+    '</div>';
+}
+function renderLock() {
+  var layer = $('#lockLayer');
+  if (!layer) return;
+  if (pinState.mode === 'none') {
+    layer.classList.remove('open');
+    layer.innerHTML = '';
+    refreshBodyLock();
+    return;
+  }
+  layer.classList.add('open');
+  layer.innerHTML = lockHTML();
+  refreshBodyLock();
+}
+function showLock(mode) {
+  hideAllRevealedIds();
+  pinState.mode = mode;
+  pinState.entry = '';
+  pinState.first = '';
+  pinState.error = '';
+  pinState.showHelp = false;
+  pinState.busy = false;
+  pinState.shake = false;
+  pinState.attempts = 0;
+  pinState.blockedUntil = 0;
+  pinState.afterVerify = null;
+  renderLock();
+}
+function hideLock() {
+  pinState.mode = 'none';
+  pinState.entry = '';
+  pinState.first = '';
+  pinState.error = '';
+  pinState.showHelp = false;
+  pinState.afterVerify = null;
+  pinState.busy = false;
+  renderLock();
+}
+function refreshBodyLock() {
+  var locked = authState.visible || pinState.mode !== 'none' || conflictState.visible || !!ui.sheet || !!ui.confirm;
+  if (locked) document.body.classList.add('is-locked');
+  else document.body.classList.remove('is-locked');
+}
+function gateLock() {
+  pinState.record = readPinRecord();
+  if (pinState.record) showLock('locked');
+  else showLock('setup');
+}
+function lockApp() {
+  if (pinState.mode !== 'none') return;
+  if (!readPinRecord()) return;
+  if (!session) return;
+  try { closeSheet(); } catch (e) {}
+  try { closeConfirm(); } catch (e) {}
+  ui.revealedIds = {};
+  showLock('locked');
+}
+function afterUnlock() {
+  hideLock();
+  applyUiPrefs();
+  render();
+  window.scrollTo(0, 0);
+  if (cloudReady()) cloudPullOnOpen();
+}
+function requestPinVerify(onOk) {
+  if (!readPinRecord()) { if (typeof onOk === 'function') onOk(); return; }
+  showLock('verify');
+  pinState.afterVerify = onOk || null;
+}
+function pinPress(digit) {
+  if (pinState.mode === 'none' || pinState.busy || pinState.showHelp) return;
+  if (pinState.blockedUntil && Date.now() < pinState.blockedUntil) {
+    var left = Math.ceil((pinState.blockedUntil - Date.now()) / 1000);
+    pinState.error = 'Too many tries. Wait ' + left + ' seconds.';
+    renderLock();
+    return;
+  }
+  if (pinState.entry.length >= 4) return;
+  pinState.entry += String(digit);
+  pinState.error = '';
+  renderLock();
+  if (pinState.entry.length === 4) onPinComplete();
+}
+function pinDelete() {
+  if (pinState.mode === 'none' || pinState.busy) return;
+  pinState.entry = pinState.entry.slice(0, -1);
+  pinState.error = '';
+  renderLock();
+}
+function pinShake(msg) {
+  pinState.shake = true;
+  pinState.error = msg || pinState.error;
+  renderLock();
+  setTimeout(function () { pinState.shake = false; if (pinState.mode !== 'none') renderLock(); }, 360);
+}
+async function onPinComplete() {
+  var entered = pinState.entry;
+  var mode = pinState.mode;
+  pinState.busy = true;
+  if (mode === 'setup') {
+    pinState.first = entered;
+    pinState.mode = 'confirm';
+    pinState.entry = '';
+    pinState.busy = false;
+    pinState.error = '';
+    renderLock();
+    return;
+  }
+  if (mode === 'confirm') {
+    if (entered !== pinState.first) {
+      pinState.mode = 'setup';
+      pinState.first = '';
+      pinState.entry = '';
+      pinState.busy = false;
+      pinShake('Those digits did not match. Try again.');
+      return;
+    }
+    var made = await setPinRecord(entered);
+    pinState.busy = false;
+    if (!made) {
+      // Never trap the owner outside their own data: run unlocked and say so.
+      pinState.error = '';
+      afterUnlock();
+      toast('This phone could not save a PIN, so the app cannot lock.', 'bad');
+      return;
+    }
+    toast('PIN set \u00B7 keep it safe', 'good');
+    afterUnlock();
+    return;
+  }
+  var good = await checkPin(entered);
+  pinState.busy = false;
+  if (good) {
+    pinState.attempts = 0;
+    pinState.blockedUntil = 0;
+    var after = pinState.afterVerify;
+    pinState.error = '';
+    afterUnlock();
+    if (mode === 'verify' && typeof after === 'function') after();
+    return;
+  }
+  pinState.attempts += 1;
+  pinState.entry = '';
+  if (pinState.attempts >= 5) {
+    pinState.attempts = 0;
+    pinState.blockedUntil = Date.now() + 30000;
+    pinShake('Too many tries. Wait 30 seconds.');
+    setTimeout(function () {
+      if (pinState.mode !== 'none') { pinState.blockedUntil = 0; pinState.error = ''; renderLock(); }
+    }, 30500);
+    return;
+  }
+  pinShake('Incorrect PIN. Try again.');
+}
+
+/* --- change PIN sheet ---------------------------------------------------- */
+function sheetChangePin() {
+  var body = '<form data-form="changePin" novalidate>' +
+    '<div class="sheet-body">' +
+    '<div class="field"><label>Current PIN</label><input class="input pin-input" type="password" name="current" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="4 digits"><div class="field-error"></div></div>' +
+    '<div class="field"><label>New PIN</label><input class="input pin-input" type="password" name="next" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits"><div class="field-error"></div></div>' +
+    '<div class="field"><label>Confirm new PIN</label><input class="input pin-input" type="password" name="confirm" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits"><div class="field-error"></div></div>' +
+    '<div class="card tight" style="margin-top:8px;background:#FFF7ED;border:1px solid #FDE3C0;box-shadow:none">' +
+    '<div class="small" style="color:#92400E;line-height:1.5"><b>Forgot the current PIN?</b><br>It cannot be shown. Restore a backup file to reset it.</div>' +
+    '<button type="button" class="btn ghost sm block" style="margin-top:10px" data-act="pin-reset-restore">' + icon('upload', 17) + ' Restore a backup</button>' +
+    '</div>' +
+    '<div class="field-hint">You will need this PIN each time the app opens.</div>' +
+    '<div style="height:6px"></div></div>' +
+    '<div class="sheet-foot"><button class="btn block" type="submit">Save new PIN</button></div>' +
+    '</form>';
+  return sheetShell({ title: 'Change PIN', sub: 'Keep your hostel data private', body: body });
+}
+async function saveChangePinForm(form) {
+  clearErrors(form);
+  var cur = String(form.elements['current'].value || '').trim();
+  var nxt = String(form.elements['next'].value || '').trim();
+  var cfm = String(form.elements['confirm'].value || '').trim();
+  var ok = true;
+  if (!/^\d{4}$/.test(cur)) ok = setError(fieldOf(form.elements['current']), 'Enter your current 4-digit PIN');
+  if (ok && !/^\d{4}$/.test(nxt)) ok = setError(fieldOf(form.elements['next']), 'Use exactly 4 digits');
+  if (ok && nxt === cur) ok = setError(fieldOf(form.elements['next']), 'Choose a different PIN');
+  if (ok && nxt !== cfm) ok = setError(fieldOf(form.elements['confirm']), 'The new PINs do not match');
+  if (!ok) return;
+  var good = await checkPin(cur);
+  if (!good) { setError(fieldOf(form.elements['current']), 'That is not the current PIN'); return; }
+  var saved = await setPinRecord(nxt);
+  if (!saved) { toast('Could not save the new PIN', 'bad'); return; }
+  closeSheet();
+  toast('PIN changed', 'good');
 }
 
 /* --- the sign-in screen -------------------------------------------------- */
@@ -4746,9 +5620,9 @@ function authInitialMode() {
 }
 function authNoteHTML() {
   if (cloud.config.configured) {
-    return 'Signed in as <b>' + esc(authState.username || 'you') + '</b>? Your hostel data follows you to any phone.';
+    return 'Use the email and password created for you in Supabase. Your hostel data is saved to the cloud and still works offline.';
   }
-  return 'Cloud sync is off. Add <b>SUPABASE_URL</b> and <b>SUPABASE_ANON_KEY</b> at the top of index.html to use the same data on any phone. Until then the account and data stay on this device.';
+  return 'Cloud sync is off. Fill in <b>config.js</b> to use the same data on any phone. Until then the account and data stay on this device.';
 }
 function renderAuth() {
   var layer = $('#authLayer');
@@ -4756,25 +5630,32 @@ function renderAuth() {
   if (!authState.visible) {
     layer.classList.remove('open');
     layer.innerHTML = '';
-    document.body.classList.remove('is-locked');
+    refreshBodyLock();
     return;
   }
-  var isSignup = authState.mode === 'signup';
-  var title = isSignup ? 'Create your account' : 'Welcome back';
-  var sub = isSignup
-    ? (cloud.config.configured ? 'Choose a username and password. Your hostel data is saved to your account.' : 'Choose a username and password for this device.')
-    : 'Sign in to open your hostel.';
+  var cloudMode = cloud.config.configured;
+  var mode = cloudMode ? 'login' : (authState.mode === 'signup' ? 'signup' : 'login');
+  var isSignup = mode === 'signup';
+  var title = cloudMode ? 'Sign in' : (isSignup ? 'Create your account' : 'Welcome back');
+  var sub = cloudMode
+    ? 'Sign in to open your hostel. Works offline after the first sign-in.'
+    : (isSignup ? 'Choose a username and password for this device.' : 'Sign in to open your hostel.');
+  var nameField = cloudMode
+    ? '<div class="field"><label>Email</label>' +
+      '<input class="input" type="email" name="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="you@example.com" value="' + attr(authState.username) + '">' +
+      '<div class="field-error"></div></div>'
+    : '<div class="field"><label>Username</label>' +
+      '<input class="input" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="yourname" value="' + attr(authState.username) + '">' +
+      '<div class="field-error"></div></div>';
   var form = '<form data-form="login" novalidate>' +
-    '<input type="hidden" name="mode" value="' + (isSignup ? 'signup' : 'login') + '">' +
-    '<div class="field"><label>Username or email</label>' +
-    '<input class="input" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + (cloud.config.configured ? 'you@example.com or yourname' : 'yourname') + '" value="' + attr(authState.username) + '">' +
-    '<div class="field-error"></div></div>' +
+    '<input type="hidden" name="mode" value="' + mode + '">' +
+    nameField +
     '<div class="field"><label>Password</label>' +
     '<input class="input" type="password" name="password" autocomplete="' + (isSignup ? 'new-password' : 'current-password') + '" placeholder="' + (isSignup ? 'At least 6 characters' : 'Your password') + '">' +
     '<div class="field-error"></div></div>' +
     (isSignup ? '<div class="field"><label>Confirm password</label>' +
       '<input class="input" type="password" name="confirm" autocomplete="new-password" placeholder="Type it again"><div class="field-error"></div></div>' : '') +
-    '<label class="auth-check"><input type="checkbox" name="stay" checked><span>Stay signed in on this device</span></label>' +
+    (cloudMode ? '' : '<label class="auth-check"><input type="checkbox" name="stay" checked><span>Stay signed in on this device</span></label>') +
     '<div class="auth-msg' + (authState.notice ? ' ok' : '') + '">' + esc(authState.notice || authState.error || ' ') + '</div>' +
     '<button class="btn block" type="submit"' + (authState.busy ? ' disabled' : '') + '>' +
     (authState.busy ? 'Please wait\u2026' : isSignup ? 'Create account' : 'Sign in') + '</button>' +
@@ -4789,14 +5670,15 @@ function renderAuth() {
     '<div class="auth-sub">' + esc(sub) + '</div>' +
     '<div class="auth-card">' + form + '</div>' +
     '<div class="auth-links">' +
-    '<button class="auth-link" data-act="auth-toggle">' + (isSignup ? 'Already have an account? Sign in' : 'New here? Create an account') + '</button>' +
+    (cloudMode ? '' : '<button class="auth-link" data-act="auth-toggle">' + (isSignup ? 'Already have an account? Sign in' : 'New here? Create an account') + '</button>') +
     '<button class="auth-link" data-act="auth-forgot">Forgot password?</button>' +
     '</div>' +
     '<div class="auth-foot">' + authNoteHTML() + '</div>' +
     '</div></div>';
-  document.body.classList.add('is-locked');
+  refreshBodyLock();
 }
 function showAuth(mode) {
+  if (pinState.mode !== 'none') hideLock();
   authState.visible = true;
   authState.mode = mode || authState.mode || authInitialMode();
   authState.error = '';
@@ -4816,166 +5698,255 @@ function authError(msg) {
   authState.busy = false;
   renderAuth();
 }
+
+/* --- sign-in ------------------------------------------------------------- */
+function authErrorMessage(err) {
+  var msg = String((err && err.message) || '');
+  if (/invalid login credentials/i.test(msg)) return 'Wrong email or password.';
+  if (/email not confirmed/i.test(msg)) return 'Please confirm your email address first.';
+  if (/failed to fetch|network|fetch|offline/i.test(msg)) return 'Cannot reach the cloud. Check the internet and try again.';
+  if (/rate limit|too many/i.test(msg)) return 'Too many tries. Wait a minute and try again.';
+  return msg || 'Could not sign in. Please try again.';
+}
+async function cloudSignIn(email, password) {
+  var client = cloudClient();
+  if (!client || !client.auth) throw new Error('Cloud sign-in is not available on this browser.');
+  var res = await client.auth.signInWithPassword({ email: email, password: password });
+  if (!res || res.error) throw new Error(authErrorMessage(res && res.error));
+  var sb = res.data && res.data.session;
+  if (!sb || !sb.user) throw new Error('Could not sign in. Please try again.');
+  return sb;
+}
+async function localSignup(username, password) {
+  if (readAccount()) throw new Error('This device already has an account. Sign in instead.');
+  var salt = randomSalt();
+  var made = await hashSecret(password, salt);
+  var rec = { v: 1, username: String(username).toLowerCase(), algo: made.algo, salt: salt, hash: made.hash, at: new Date().toISOString() };
+  if (!writeAccount(rec)) throw new Error('This browser could not save the account. Check storage settings.');
+  return { v: 1, cloud: false, user: { id: 'local', username: rec.username, email: '' } };
+}
+async function localSignin(username, password) {
+  var rec = readAccount();
+  if (!rec) throw new Error('No account on this device yet. Create one below.');
+  if (rec.username && rec.username !== String(username).trim().toLowerCase()) throw new Error('That is not the account on this device.');
+  var good = await verifyLocalPassword(password, rec);
+  if (!good) throw new Error('Incorrect password. Try again.');
+  return { v: 1, cloud: false, user: { id: 'local', username: rec.username, email: '' } };
+}
 async function saveLoginForm(form) {
   clearErrors(form);
-  var mode = val(form, 'mode') === 'signup' ? 'signup' : 'login';
-  var username = val(form, 'username');
+  var cloudMode = cloud.config.configured;
+  var mode = (!cloudMode && val(form, 'mode') === 'signup') ? 'signup' : 'login';
+  var nameEl = form.elements[cloudMode ? 'email' : 'username'];
+  var name = String(nameEl ? nameEl.value : '').trim();
   var passEl = form.elements['password'];
   var password = String(passEl ? passEl.value : '');
-  var stayEl = form.elements['stay'];
-  var stay = stayEl ? !!stayEl.checked : true;
   var ok = true;
-  if (!username) ok = setError(fieldOf(form.elements['username']), 'Enter your username or email');
-  if (!password) ok = setError(fieldOf(passEl), 'Enter your password');
-  if (mode === 'signup') {
-    if (ok && password.length < 6) ok = setError(fieldOf(passEl), 'Use at least 6 characters');
+  if (!name) ok = setError(fieldOf(nameEl), cloudMode ? 'Enter your email' : 'Enter your username');
+  if (ok && cloudMode && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(name)) ok = setError(fieldOf(nameEl), 'Enter a valid email address');
+  if (ok && !password) ok = setError(fieldOf(passEl), 'Enter your password');
+  if (ok && mode === 'signup') {
+    if (password.length < 6) ok = setError(fieldOf(passEl), 'Use at least 6 characters');
     var cfmEl = form.elements['confirm'];
-    if (ok && cfmEl && cfmEl.value !== password) ok = setError(fieldOf(cfmEl), 'The passwords do not match');
+    if (ok && cfmEl && String(cfmEl.value) !== password) ok = setError(fieldOf(cfmEl), 'The passwords do not match');
   }
   if (!ok) return;
-  authState.username = username;
+  authState.username = name;
   authState.error = '';
   authState.notice = '';
   authState.busy = true;
   renderAuth();
   try {
-    var next = mode === 'signup' ? await signUpWithPassword(username, password, stay) : await signInWithPassword(username, password, stay);
-    await startSession(next);
-  } catch (err) {
-    if (err && err.needsConfirm) {
-      authState.mode = 'login';
-      authState.notice = err.message;
-      authState.busy = false;
-      renderAuth();
-      return;
+    if (cloudMode) {
+      var sb = await cloudSignIn(name, password);
+      await startCloudSession(sb);
+    } else {
+      var next = mode === 'signup' ? await localSignup(name, password) : await localSignin(name, password);
+      startLocalSession(next);
     }
+  } catch (err) {
     authError(err && err.message ? err.message : 'Could not sign in. Please try again.');
   }
 }
-async function startSession(next) {
+function resetLocalData() {
+  db = blankDB();
+  ensureBedsForRooms(db);
+  reconcileBeds();
+  saveLocalOnly();
+}
+function startLocalSession(next) {
   session = next;
-  if (session.cloud) session.stay = !!session.stay;
   writeSession(session);
   authState.busy = false;
   hideAuth();
   applyUiPrefs();
   render();
   window.scrollTo(0, 0);
-  if (!session.cloud) {
-    setSyncStatus('local');
-    toast('Signed in \u00B7 ' + (cloud.config.configured ? 'local account' : 'saved on this phone'), 'good');
-    return;
-  }
-  var previousOwner = readCacheOwner();
-  if (previousOwner && previousOwner !== session.user.id) {
-    // A different account was cached on this device: never upload its data.
-    db = blankDB();
-    ensureBedsForRooms(db);
-    reconcileBeds();
-    saveLocalOnly();
-    render();
-  }
-  writeCacheOwner(session.user.id);
-  setSyncStatus('saving');
-  try {
-    var row = await cloudGet();
-    if (row && row.data && Array.isArray(row.data.residents)) {
-      applyRemote(row);
-      setSyncStatus('synced');
-      toast('Loaded your hostel data from the cloud', 'good');
-    } else {
-      await cloudPut();
-      db.meta.syncedAt = new Date().toISOString();
-      saveLocalOnly();
-      cloud.pending = false;
-      setSyncStatus('synced');
-      toast('Your hostel data is now saved to the cloud', 'good');
-    }
-  } catch (e) {
-    setSyncStatus(e.offline || e.timeout || !isOnline() ? 'offline' : 'error', e.message);
-    toast('Signed in \u00B7 offline, using data on this phone', 'bad');
-  }
+  setSyncStatus('local');
+  gateLock();
+  toast('Signed in', 'good');
 }
-function signOutNow() {
-  var wasCloud = !!(session && session.cloud);
-  if (wasCloud) {
-    var token = session.access_token;
-    try {
-      httpJSON(cloud.config.url + '/auth/v1/logout', {
-        method: 'POST',
-        headers: { apikey: cloud.config.key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: '{}'
-      }, 6000).catch(function () {});
-    } catch (e) {}
-  }
-  if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
-  cloud.pending = false;
-  forgetSession();
-  authState.mode = authInitialMode();
-  authState.username = '';
-  ui.tab = 'home';
-  ui.view = { name: 'home', params: {} };
-  showAuth();
-  toast('Signed out', 'good');
+async function startCloudSession(sbSession) {
+  var user = (sbSession && sbSession.user) || {};
+  var id = String(user.id || '');
+  if (!id) throw new Error('Could not sign in. Please try again.');
+  session = { v: 1, cloud: true, user: { id: id, email: String(user.email || '') } };
+  writeSession(session);
+  authState.busy = false;
+  if (readCacheOwner() && readCacheOwner() !== id) resetLocalData();
+  writeCacheOwner(id);
+  hideAuth();
+  applyUiPrefs();
+  render();
+  window.scrollTo(0, 0);
+  setSyncStatus('idle');
+  gateLock();
+  toast('Signed in', 'good');
 }
-async function forgotPasswordFlow() {
-  if (!cloud.config.configured) {
-    askConfirm({
-      title: 'Forgot your password?',
-      icon: 'key',
-      message: 'This device has a local account and there is no password reset.<br><br>If you still have the app open on another phone, the data is there. Otherwise create a new account \u2014 your hostel data stays on this phone.',
-      confirmLabel: 'Create a new account',
-      danger: false,
-      onYes: function () {
-        clearAccount();
-        closeConfirm();
-        showAuth('signup');
-        toast('Choose a new username and password', 'good');
-      }
-    });
-    return;
-  }
-  var email = (authState.username || '').indexOf('@') >= 0 ? authState.username : '';
-  if (!email) {
-    authError('Type your email above, then tap Forgot password again.');
-    return;
-  }
-  try {
-    await httpJSON(cloud.config.url + '/auth/v1/recover', {
-      method: 'POST',
-      headers: { apikey: cloud.config.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    }, 15000);
-    authState.notice = 'Password reset link sent to ' + email + '. Check your inbox.';
+function sessionName() {
+  if (!session || !session.user) return 'Not signed in';
+  if (session.cloud) return session.user.email || 'Signed in';
+  return session.user.username || 'Local account';
+}
+function forgotPasswordFlow() {
+  if (cloud.config.configured) {
+    authState.notice = 'The owner resets passwords in the Supabase dashboard (Authentication > Users).';
     authState.error = '';
     renderAuth();
-  } catch (e) {
-    authError(e.message || 'Could not send the reset email.');
-  }
-}
-function initAuth() {
-  cloud.config = readCloudConfig();
-  session = readSession();
-  if (!session) {
-    authState.mode = authInitialMode();
-    showAuth(authState.mode);
-    setSyncStatus(cloud.config.configured ? 'offline' : 'local');
     return;
   }
-  hideAuth();
-  setSyncStatus(session.cloud ? 'saving' : 'local');
-  if (session.cloud) {
-    // Read the cache straight away, then reconcile with the cloud.
-    syncNow({ pull: true }).then(function (ok) {
-      if (!ok && !isOnline()) setSyncStatus('offline');
+  toast('Restore a backup file if you forgot the password.', 'bad');
+}
+
+/* --- log out ------------------------------------------------------------- */
+function askLogout() {
+  requestPinVerify(function () {
+    var cloudUser = !!(session && session.cloud);
+    askConfirm({
+      title: 'Log out?',
+      icon: 'logout',
+      message: cloudUser
+        ? 'Changes on this phone that have not reached the cloud will be lost. The cloud copy is not touched.<br><br>You will need your email and password to open the hostel again.'
+        : 'Your data stays on this phone. You will need your password to open the hostel again.',
+      confirmLabel: 'Log out',
+      onYes: function () { closeConfirm(); doLogout(); }
     });
+  });
+}
+async function doLogout() {
+  var wasCloud = !!(session && session.cloud);
+  if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; }
+  if (wasCloud) {
+    try {
+      var client = cloudClient();
+      if (client && client.auth && client.auth.signOut) await client.auth.signOut();
+    } catch (e) { /* the local session is forgotten below anyway */ }
+  }
+  session = null;
+  cloud.pending = false;
+  cloud.busy = false;
+  cloud.known = false;
+  cloud.version = 0;
+  cloud.at = null;
+  cloud.error = '';
+  cloud.status = 'local';
+  forgetSession();
+  clearPinRecord();
+  clearCacheOwner();
+  idStore = blankIdStore();
+  writeIdStore();
+  if (wasCloud) resetLocalData();
+  authState.visible = false;
+  authState.mode = 'login';
+  authState.error = '';
+  authState.notice = '';
+  authState.busy = false;
+  render();
+  showAuth('login');
+  toast('Logged out', 'good');
+}
+
+/* --- boot ---------------------------------------------------------------- */
+async function initAuth() {
+  cloud.config = readCloudConfig();
+  if (!cloud.config.configured) { bootLocalOnly(); return; }
+  var client = cloudClient();
+  if (!client || !client.auth) {
+    console.warn('Cloud sign-in is not available; running on this phone only.');
+    bootLocalOnly();
+    return;
+  }
+  try {
+    var res = await client.auth.getSession();
+    var sb = res && res.data ? res.data.session : null;
+    if (!sb || !sb.user) { showAuth('login'); return; }
+    await startCloudSession(sb);
+  } catch (e) {
+    showAuth('login');
   }
 }
-function refreshAuthOnShow() {
-  if (!session) return;
-  if (session.cloud && session.expires_at && session.expires_at - Date.now() < 120000) refreshSessionToken();
-  if (session.cloud && cloud.config.configured && isOnline() && !cloud.timer) syncNow({ pull: true });
+function bootLocalOnly() {
+  var cached = readSession();
+  if (cached && !cached.cloud) { startLocalSession(cached); return; }
+  showAuth(authInitialMode());
 }
+function refreshAuthOnShow() {
+  if (authState.visible) return;
+  if (!session) return;
+  if (pinState.mode === 'locked') return;
+  if (pinState.mode === 'verify' || pinState.mode === 'setup' || pinState.mode === 'confirm') return;
+  if (conflictState.visible) return;
+  if (lockHiddenAt && (Date.now() - lockHiddenAt) > PIN_TTL_MS) { lockApp(); return; }
+  if (!cloudReady()) return;
+  if (cloud.pending) syncNow();
+  else if (idsPending()) idSyncNow();
+  else cloudPullOnOpen();
+}
+
+/* --- clicks that belong to the sign-in, lock and conflict screens -------- */
+document.addEventListener('click', function (e) {
+  var el = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+  if (!el) return;
+  var act = el.getAttribute('data-act');
+  if (act === 'auth-toggle') {
+    authState.mode = authState.mode === 'signup' ? 'login' : 'signup';
+    authState.error = '';
+    authState.notice = '';
+    renderAuth();
+    return;
+  }
+  if (act === 'auth-forgot') { forgotPasswordFlow(); return; }
+  if (act === 'pin-digit') { pinPress(el.getAttribute('data-digit')); return; }
+  if (act === 'pin-delete') { pinDelete(); return; }
+  if (act === 'pin-help') { pinState.showHelp = true; renderLock(); return; }
+  if (act === 'pin-help-close') { pinState.showHelp = false; renderLock(); return; }
+  if (act === 'pin-cancel') { hideLock(); render(); return; }
+  if (act === 'pin-restore') {
+    pinState.resetOnRestore = true;
+    var picker = $('#lockRestoreFile');
+    if (picker) picker.click();
+    return;
+  }
+  if (act === 'pin-reset-restore') {
+    pinState.resetOnRestore = true;
+    try { closeSheet(); } catch (err) {}
+    var mainPicker = $('#restoreFile');
+    if (mainPicker) mainPicker.click();
+    return;
+  }
+  if (act === 'conflict-cloud') { useCloudCopy(); return; }
+  if (act === 'conflict-local') { keepPhoneCopy(); return; }
+  if (act === 'sync-chip') {
+    if (conflictState.visible) return;
+    if (cloud.status === 'offline' || cloud.status === 'error') { syncNow(); return; }
+    if (cloud.status === 'conflict') { openConflictForLatest(); return; }
+    toast(cloud.status === 'synced' ? 'Everything is saved to the cloud' : 'Your data is on this phone and syncs automatically', 'good');
+    return;
+  }
+  if (conflictState.visible) return;
+  if (act === 'lock-now') { lockApp(); return; }
+  if (act === 'change-pin') { openSheet('changePin'); return; }
+});
 
 /* ===========================================================================
    25c. PAYMENT RECEIPT
@@ -5085,8 +6056,11 @@ document.addEventListener('click', function (e) {
   var el = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!el) return;
   var act = el.getAttribute('data-act');
-  // While the sign-in screen is up, nothing behind it may be used.
+  // While the sign-in, PIN or sync-choice screens are up, nothing behind them
+  // may be used.
   if (authState.visible && act.indexOf('auth-') !== 0) return;
+  if (pinState.mode !== 'none') return;
+  if (conflictState.visible) return;
   var id = el.getAttribute('data-id');
   try {
     switch (act) {
@@ -5423,35 +6397,26 @@ document.addEventListener('click', function (e) {
       case 'share-backup':
         shareBackup();
         break;
-      case 'auth-toggle':
-        authState.mode = authState.mode === 'signup' ? 'login' : 'signup';
-        authState.error = '';
-        authState.notice = '';
-        renderAuth();
-        break;
-      case 'auth-forgot':
-        forgotPasswordFlow();
-        break;
       case 'logout':
-        askConfirm({
-          title: 'Log out?',
-          icon: 'logout',
-          message: 'Your data stays safe' + (cloud.config.configured && session && session.cloud ? ' in the cloud — sign in again on any phone.' : ' on this phone.') + '<br><br>You will need your password to open the hostel again.',
-          confirmLabel: 'Log out',
-          onYes: function () { closeConfirm(); signOutNow(); }
-        });
+        askLogout();
+        break;
+      case 'lock-now':
+        lockApp();
+        break;
+      case 'change-pin':
+        openSheet('changePin');
         break;
       case 'sync-now':
-        syncNow({ pull: false });
+        syncNow();
         break;
       case 'toggle-large-text':
         toggleLargeText();
         break;
-      case 'toggle-id':
-        if (id) {
-          ui.revealedIds[id] = !ui.revealedIds[id];
-          render();
-        }
+      case 'reveal-id':
+        if (id) revealIdNumber(id);
+        break;
+      case 'hide-id':
+        if (id) hideIdNumber(id);
         break;
       case 'receipt-done':
         closeSheet();
@@ -5505,6 +6470,7 @@ document.addEventListener('submit', function (e) {
     else if (kind === 'elecBill') saveElecBillForm(form);
     else if (kind === 'electricity') saveElectricityForm(form);
     else if (kind === 'login') saveLoginForm(form);
+    else if (kind === 'changePin') saveChangePinForm(form);
   } catch (err) {
     console.error('Form save failed', err);
     toast('Could not save. Please check the details.', 'bad');
@@ -5551,6 +6517,10 @@ document.addEventListener('change', function (e) {
     ui.wizard.data.bedId = '';
     var room = roomById(el.value);
     if (room && (!ui.wizard.data.rent || num(ui.wizard.data.rent) === 0)) ui.wizard.data.rent = room.rent;
+    renderSheet();
+  } else if (change === 'wiz-id-type') {
+    captureWizard();
+    ui.wizard.data.idType = el.value;
     renderSheet();
   } else if (change === 'wiz-rent') {
     captureWizard();
@@ -5747,17 +6717,21 @@ function setupSWUpdates() {
 }
 function setupSessionWatch() {
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') refreshAuthOnShow();
+    if (document.visibilityState === 'hidden') { lockHiddenAt = Date.now(); return; }
+    refreshAuthOnShow();
   });
   window.addEventListener('online', function () {
-    if (session && session.cloud) syncNow({ pull: true });
+    if (!cloudReady()) return;
+    if (cloud.pending) syncNow();
+    else if (idsPending()) idSyncNow();
+    else cloudPullOnOpen();
   });
   window.addEventListener('offline', function () {
-    if (session && session.cloud) setSyncStatus('offline');
+    if (cloudReady()) setSyncStatus('offline');
   });
   window.addEventListener('pagehide', function () {
-    if (session && session.cloud && cloud.pending) {
-      try { cloudPut(); } catch (e) {}
+    if (cloudReady() && cloud.pending) {
+      try { uploadLocalCopy(localVersion()); } catch (e) {}
     }
   });
 }
@@ -5767,6 +6741,7 @@ function init() {
   ensureBedsForRooms(db);
   reconcileBeds();
   ensureDues();
+  pruneOrphanIds();
   try { save(); } catch (e) {}
   ui.tab = 'home';
   ui.view = { name: 'home', params: {} };

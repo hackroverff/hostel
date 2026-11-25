@@ -24,7 +24,8 @@ function open(seed) {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     beforeParse(win) {
-      win.HOSTEL_CONFIG = { cloud: false };
+      // placeholders in config.js == local-only mode: no network at all
+      win.APP_CONFIG = { SUPABASE_URL: 'PASTE_PROJECT_URL', SUPABASE_KEY: 'PASTE_PUBLISHABLE_KEY' };
       win.scrollTo = () => {};
       win.print = () => { win.__printed = true; };
       win.__downloads = [];
@@ -68,7 +69,21 @@ function submit(form) {
 function db() {
   return JSON.parse(w.localStorage.getItem('hostelManager.v1'));
 }
-function settle(ms) { return new Promise((r) => setTimeout(r, ms || 20)); }
+async function settle(ms) {
+  await new Promise((r) => setTimeout(r, ms || 20));
+  // The 4-digit PIN now sits on top of the account: clear it automatically.
+  let guard = 0;
+  while (q('#lockLayer .lock-screen') && guard < 4) {
+    guard += 1;
+    const mode = q('#lockLayer .lock-screen').getAttribute('data-mode');
+    for (const ch of '1234') {
+      const key = q('[data-act="pin-digit"][data-digit="' + ch + '"]');
+      if (key) click(key);
+    }
+    await new Promise((r) => setTimeout(r, 450));
+    if (mode === 'locked' && !q('#lockLayer .lock-screen')) break;
+  }
+}
 
 async function unlock(opts) {
   opts = opts || {};
@@ -117,7 +132,7 @@ async function unlock(opts) {
   submit(loginForm);
   await settle(800);
   ok(!q('#authLayer.open'), 'sign-in screen goes away once the account is created');
-  ok(/Signed in/.test(text(q('#toast'))), 'toast confirms the sign-in: ' + text(q('#toast')));
+  ok(/PIN set|Signed in/.test(text(q('#toast'))), 'toast confirms the sign-in: ' + text(q('#toast')));
   ok(!!w.localStorage.getItem('hostelManager.session'), 'session stored for "stay signed in"');
   const acct = JSON.parse(w.localStorage.getItem('hostelManager.account') || '{}');
   ok(acct.username === 'owner', 'account saved: ' + JSON.stringify(acct && acct.username));
@@ -354,15 +369,16 @@ async function unlock(opts) {
   ok(!/Load demo data/.test(text(q('.screen'))), 'settings has no Load demo data row');
   ok(/Erase everything/.test(text(q('.screen'))), 'settings offers Erase everything');
   ok(!/Clear all data/.test(text(q('.screen'))), 'old Clear all data label is gone');
-  ok(!/PIN/.test(text(q('.screen'))), 'settings has no PIN rows left');
+  ok(/Change PIN/.test(text(q('.screen'))) && /Lock now/.test(text(q('.screen'))), 'settings offers the PIN controls');
   ok(/Account/.test(text(q('.screen'))), 'settings has an Account section');
   ok(/Local account/.test(text(q('.screen'))), 'settings says this is a local account');
   ok(!!q('#syncStatus'), 'settings shows a sync status row');
-  ok(/Cloud sync off/.test(text(q('#syncStatus'))), 'sync status explains cloud sync is off: ' + text(q('#syncStatus')));
+  ok(/Saved on this phone/.test(text(q('#syncStatus'))), 'sync status explains cloud sync is off: ' + text(q('#syncStatus')));
   ok(!!q('[data-act="logout"]'), 'settings offers Log out');
   ok(!!q('[data-act="logout"] .st') && /Log out/.test(text(q('[data-act="logout"] .st'))), 'the log out row has a title');
   ok(!!q('[data-act="logout"] .ss'), 'the log out row has a description line');
-  ok(!q('[data-act="change-pin"]'), 'no Change PIN action');
+  ok(!!q('[data-act="change-pin"]'), 'settings offers Change PIN');
+  ok(!q('#syncChip'), 'a local-only phone shows no cloud chip');
   ok(!!q('#waTemplate'), 'whatsApp template field');
   const tpl = q('#waTemplate');
   setVal(tpl, 'Hi {name}, please pay ₹{balance} for {month}. UPI {upi}');
@@ -378,6 +394,11 @@ async function unlock(opts) {
 
   clickAct('backup');
   await settle();
+  ok(!!q('#confirmLayer .sheet'), 'a backup warns first: it can contain ID numbers');
+  ok(/This file contains ID numbers/.test(text(q('#confirmLayer'))), 'the warning names the ID numbers');
+  ok(/Share only with yourself/.test(text(q('#confirmLayer'))), 'the warning says who may have it');
+  clickAct('confirm-yes');
+  await settle(120);
   ok(w.__downloads.length === 2, 'backup download triggered');
   const bd = w.__downloads[1];
   ok(/^hostel-backup-\d{4}-\d{2}-\d{2}\.json$/.test(bd.download), 'backup filename: ' + bd.download);
